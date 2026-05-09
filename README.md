@@ -27,3 +27,7 @@ Fluxo:
 5. Um cron do OpenClaw checa o tópico e processa novos treinos
 
 Limite: topic secrecy não é autenticação forte. Para produção real, migrar para backend próprio com token server-side.
+
+### Ingest script
+
+`node check-submissions.mjs` lê o tópico configurado em `memory/personal/training-ingest-state.json`, compara com o último id processado, grava novos treinos em `memory/personal/training-log.jsonl` e imprime um JSON com `training` e `items`.

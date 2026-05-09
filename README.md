@@ -13,3 +13,17 @@ Os registros ficam no `localStorage` do navegador do celular. Para o Charlie/PA 
 5. Colar/enviar o resumo para o Charlie
 
 Sem backend, não há sincronização automática dos dados.
+
+## Automação via ntfy
+
+A automação usa um tópico privado/aleatório do ntfy. O tópico não fica hardcoded no HTML público; ele é salvo no navegador quando o usuário abre a URL com `?ntfy=<topic>`.
+
+Fluxo:
+
+1. Abrir uma vez a URL privada `https://.../training-tracker/?ntfy=<topic>`
+2. O app salva o tópico no `localStorage` e limpa a query string
+3. Depois de registrar um treino, clicar **Enviar Charlie**
+4. O app publica um JSON em `https://ntfy.sh/<topic>`
+5. Um cron do OpenClaw checa o tópico e processa novos treinos
+
+Limite: topic secrecy não é autenticação forte. Para produção real, migrar para backend próprio com token server-side.

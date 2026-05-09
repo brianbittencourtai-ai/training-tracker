@@ -1,0 +1,402 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Treino Brian — Tracker</title>
+  <style>
+    :root {
+      --bg: #0b0f14;
+      --card: #121923;
+      --card2: #182230;
+      --text: #eef4ff;
+      --muted: #9fb0c3;
+      --accent: #72e0a8;
+      --accent2: #7aa7ff;
+      --warn: #ffd166;
+      --danger: #ff6b6b;
+      --line: rgba(255,255,255,.1);
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, Arial, sans-serif;
+      background: radial-gradient(circle at top, #182942 0%, var(--bg) 42%);
+      color: var(--text);
+      line-height: 1.45;
+    }
+    header {
+      padding: 24px 18px 12px;
+      max-width: 980px;
+      margin: 0 auto;
+    }
+    h1 { margin: 0 0 6px; font-size: 28px; letter-spacing: -0.03em; }
+    .subtitle { color: var(--muted); font-size: 14px; }
+    main { max-width: 980px; margin: 0 auto; padding: 12px 18px 104px; }
+    .grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; margin: 16px 0; }
+    .day {
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,.035);
+      border-radius: 14px;
+      padding: 10px;
+      min-height: 86px;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .day.active { outline: 2px solid var(--accent); background: rgba(114,224,168,.12); }
+    .day strong { display: block; font-size: 13px; margin-bottom: 5px; }
+    .day span { font-size: 12px; color: var(--muted); }
+    .card {
+      background: linear-gradient(180deg, rgba(255,255,255,.055), rgba(255,255,255,.025));
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      padding: 16px;
+      margin: 14px 0;
+      box-shadow: 0 18px 55px rgba(0,0,0,.22);
+    }
+    .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+    .pill { display: inline-flex; align-items:center; gap:6px; border: 1px solid var(--line); background: rgba(255,255,255,.05); border-radius: 999px; padding: 6px 10px; color: var(--muted); font-size: 12px; }
+    button {
+      background: var(--accent);
+      color: #062013;
+      border: 0;
+      border-radius: 12px;
+      padding: 10px 12px;
+      min-height: 44px;
+      font-weight: 700;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+    }
+    button.secondary { background: var(--card2); color: var(--text); border: 1px solid var(--line); }
+    button.danger { background: rgba(255,107,107,.18); color: #ffdada; border: 1px solid rgba(255,107,107,.35); }
+    input, textarea, select {
+      width: 100%;
+      background: #0d141d;
+      color: var(--text);
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 9px 10px;
+      min-height: 44px;
+      font: inherit;
+      font-size: 16px;
+    }
+    textarea { min-height: 72px; resize: vertical; }
+    table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+    th, td { border-bottom: 1px solid var(--line); padding: 9px 6px; vertical-align: top; }
+    th { color: var(--muted); font-size: 12px; text-align: left; font-weight: 600; }
+    td.exercise { min-width: 190px; font-weight: 650; }
+    .small { font-size: 12px; color: var(--muted); }
+    .warn { color: var(--warn); }
+    .ok { color: var(--accent); }
+    .hidden { display:none; }
+    .history-item { border-top: 1px solid var(--line); padding: 10px 0; }
+    .metrics { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+    .metric { background: rgba(255,255,255,.04); border:1px solid var(--line); border-radius: 14px; padding: 10px; }
+    .metric label { display:block; color:var(--muted); font-size:12px; margin-bottom:5px; }
+    .mobile-actions { display:none; }
+    @media (max-width: 760px) {
+      header { padding: 18px 14px 8px; }
+      h1 { font-size: 24px; }
+      .subtitle { font-size: 13px; }
+      main { padding: 8px 12px calc(112px + env(safe-area-inset-bottom)); }
+      .card { border-radius: 16px; padding: 12px; margin: 10px 0; }
+      .row { gap: 8px; }
+      .row > div { max-width: 100%; }
+      .pill { font-size: 12px; padding: 7px 9px; }
+      .pill:has(#activitySelect) { width: 100%; }
+      #activitySelect { width: 100% !important; }
+      button { width: 100%; min-height: 48px; }
+      .card > .row button { width: auto; flex: 1 1 140px; }
+      .grid {
+        display:flex;
+        overflow-x:auto;
+        gap:8px;
+        margin: 10px -12px 12px;
+        padding: 0 12px 8px;
+        scroll-snap-type:x mandatory;
+        -webkit-overflow-scrolling: touch;
+      }
+      .grid::-webkit-scrollbar { display:none; }
+      .day {
+        flex: 0 0 128px;
+        min-height: 74px;
+        padding: 10px;
+        scroll-snap-align:start;
+      }
+      .day strong { font-size: 13px; }
+      .day span { font-size: 11px; }
+      .metrics { grid-template-columns: repeat(2, 1fr); gap:8px; }
+      .metric { padding: 9px; }
+      #sessionTitle { font-size: 20px; line-height:1.15; }
+      table, thead, tbody, th, td, tr { display:block; }
+      table { margin-top: 6px; }
+      thead { display:none; }
+      tr {
+        border:1px solid var(--line);
+        border-radius:16px;
+        margin:10px 0;
+        padding:10px;
+        background:rgba(255,255,255,.035);
+      }
+      td { border:0; padding:6px 0; }
+      td.exercise { min-width: 0; font-size: 16px; padding-bottom: 2px; }
+      td:before { content: attr(data-label); display:block; color:var(--muted); font-size:11px; margin-bottom:3px; }
+      td.exercise:before { content: none; }
+      td[data-label="Peso"], td[data-label="Real"], td[data-label="RPE"] {
+        display:inline-block;
+        width: calc(33.333% - 5px);
+        margin-right: 4px;
+      }
+      td[data-label="Obs"] { clear:both; }
+      .mobile-actions {
+        position: fixed;
+        left: 0; right: 0; bottom: 0;
+        display: grid;
+        grid-template-columns: 1.1fr .75fr .9fr;
+        gap: 8px;
+        padding: 10px 12px calc(10px + env(safe-area-inset-bottom));
+        background: rgba(11,15,20,.92);
+        backdrop-filter: blur(14px);
+        border-top: 1px solid var(--line);
+        z-index: 20;
+      }
+      .mobile-actions button { margin:0; }
+      .desktop-only { display:none !important; }
+    }
+  </style>
+</head>
+<body>
+<header>
+  <h1>Treino Brian</h1>
+  <div class="subtitle">Plano 8 semanas — força, beach, pilates e corrida/bike. Salva no navegador via localStorage.</div>
+  <div class="subtitle" style="margin-top:6px;color:#72e0a8">Feedback loop: salve o treino e use Copiar/Compartilhar para mandar o resumo ao Charlie.</div>
+</header>
+<main>
+  <section class="card">
+    <div class="row" style="justify-content:space-between">
+      <div>
+        <div class="pill">Semana <input id="week" type="number" min="1" max="8" value="1" style="width:72px; margin-left:6px"></div>
+        <div class="pill">Data <input id="date" type="date" style="width:150px; margin-left:6px"></div>
+        <div class="pill">Atividade <select id="activitySelect" style="width:210px; margin-left:6px"></select></div>
+      </div>
+      <div class="row desktop-only">
+        <button class="secondary" onclick="exportData()">Exportar JSON</button>
+        <button class="secondary" onclick="copySummary()">Copiar resumo</button>
+        <button class="secondary" onclick="shareSummary()">Compartilhar</button>
+      </div>
+    </div>
+  </section>
+
+  <section class="grid" id="days"></section>
+
+  <section class="card">
+    <div class="row" style="justify-content:space-between">
+      <div>
+        <h2 id="sessionTitle" style="margin:0">Selecione um dia</h2>
+        <div id="sessionMeta" class="small"></div>
+      </div>
+      <div id="sessionType" class="pill"></div>
+    </div>
+    <div id="sessionContent" style="margin-top:12px"></div>
+  </section>
+
+  <section class="card">
+    <h2 style="margin-top:0">Check-in do dia</h2>
+    <div class="metrics">
+      <div class="metric"><label>Sono</label><input id="sleep" placeholder="ex: 7h20" /></div>
+      <div class="metric"><label>Energia 1-10</label><input id="energy" type="number" min="1" max="10" /></div>
+      <div class="metric"><label>Dor/desconforto</label><input id="pain" placeholder="ex: joelho 2/10" /></div>
+      <div class="metric"><label>Peso corporal</label><input id="bodyweight" placeholder="opcional" /></div>
+    </div>
+    <div style="margin-top:10px">
+      <label class="small">Notas gerais</label>
+      <textarea id="notes" placeholder="Como foi? O que pesou? O que ajustar?"></textarea>
+    </div>
+    <div class="row" style="margin-top:12px">
+      <button onclick="saveSession()">Salvar treino</button>
+      <button class="secondary" onclick="loadToday()">Carregar salvo de hoje</button>
+      <button class="danger" onclick="clearToday()">Apagar treino de hoje</button>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2 style="margin-top:0">Histórico recente</h2>
+    <div id="history" class="small"></div>
+  </section>
+
+  <section class="card">
+    <h2 style="margin-top:0">Guardrails</h2>
+    <ul class="small">
+      <li>Reduzir volume se sono &lt;6h por 2-3 noites.</li>
+      <li>Reduzir se dor articular persistente.</li>
+      <li>Reduzir se houver queda clara de força/performance.</li>
+      <li>Reduzir se cansaço não melhora no aquecimento.</li>
+      <li>Sem heroísmo: consistência agressiva &gt; semana épica isolada.</li>
+    </ul>
+  </section>
+</main>
+<div class="mobile-actions">
+  <button onclick="saveSession()">Salvar treino</button>
+  <button class="secondary" onclick="copySummary()">Copiar</button>
+  <button class="secondary" onclick="shareSummary()">Enviar</button>
+</div>
+<script>
+const plan = {
+  "Segunda": { type:"Beach", title:"Beach tennis", meta:"Esporte / coordenação / explosão", items:[] },
+  "Terça": { type:"Força + cardio", title:"Musculação A + cardio leve", meta:"RPE força ~7; cardio RPE 5-6", items:[
+    ["Goblet squat ou leg press", "3x8-12"], ["Supino halteres ou chest press", "3x8-12"], ["Remada", "3x10-12"], ["Terra romeno", "3x8-10"], ["Desenvolvimento ombro", "2x8-10"], ["Prancha", "3x30-45s"], ["Farmer carry", "3x30-45s"]
+  ]},
+  "Quarta": { type:"Beach", title:"Beach tennis", meta:"Esporte / coordenação / explosão", items:[] },
+  "Quinta": { type:"Força + cardio", title:"Musculação B + cardio leve", meta:"RPE força ~7; cardio RPE 5-6", items:[
+    ["Leg press ou avanço", "3x10-12"], ["Puxada", "3x8-12"], ["Supino inclinado", "3x8-12"], ["Hip thrust", "3x10-12"], ["Elevação lateral", "2x12-15"], ["Pallof press ou prancha lateral", "3x10-12/lado ou 20-30s"], ["Face pull ou crucifixo inverso", "2x12-15"]
+  ]},
+  "Sexta": { type:"Pilates", title:"Pilates", meta:"Mobilidade, core, postura, recuperação ativa", items:[] },
+  "Sábado": { type:"Off", title:"Descanso / caminhada leve opcional", meta:"Dia livre. Só leve se recuperação estiver boa.", items:[] },
+  "Domingo": { type:"Longão", title:"Corrida + bike", meta:"RPE 6-7, forte controlado", items:[] }
+};
+const cardio = {
+  1:{tue:"1 km corrida + 2 km bike", thu:"1 km corrida + 2 km bike", sun:"3 km corrida + 6 km bike"},
+  2:{tue:"1,5 km corrida + 2-3 km bike", thu:"1,5 km corrida + 2-3 km bike", sun:"3,5 km corrida + 6 km bike"},
+  3:{tue:"2 km corrida + 3 km bike", thu:"2 km corrida + 3 km bike", sun:"4 km corrida + 6-7 km bike"},
+  4:{tue:"2 km corrida + 3-4 km bike leve", thu:"2 km corrida + 3-4 km bike leve", sun:"4 km corrida + 6 km bike leve"},
+  5:{tue:"2,5 km corrida + 4 km bike", thu:"2,5 km corrida + 4 km bike", sun:"5 km corrida + 7 km bike"},
+  6:{tue:"2,5-3 km corrida + 4-5 km bike", thu:"2,5 km corrida + 4 km bike", sun:"5-5,5 km corrida + 8 km bike"},
+  7:{tue:"3 km corrida + 5 km bike", thu:"2 km corrida + 4 km bike", sun:"6 km corrida + 8-10 km bike"},
+  8:{tue:"Manter ou deload leve", thu:"Manter ou deload leve", sun:"Deload parcial ou repetir semana 7 controlado"}
+};
+let selectedDay = "Terça";
+const $ = id => document.getElementById(id);
+function todayISO(){ return new Date().toISOString().slice(0,10); }
+function dayFromISO(iso){
+  const [y,m,d] = iso.split('-').map(Number);
+  const dt = new Date(y, m - 1, d);
+  return ["Domingo","Segunda","Terça","Quarta","Quinta","Sexta","Sábado"][dt.getDay()];
+}
+function setSelectedDay(day, shouldLoad=true){
+  selectedDay = day;
+  const sel = $('activitySelect');
+  if(sel) sel.value = day;
+  renderDays();
+  renderSession();
+  if(shouldLoad) loadToday(false);
+}
+function renderActivitySelect(){
+  const sel = $('activitySelect');
+  if(!sel) return;
+  sel.innerHTML = Object.entries(plan).map(([day,p]) => `<option value="${day}">${day} — ${p.title}</option>`).join('');
+  sel.value = selectedDay;
+  sel.onchange = () => setSelectedDay(sel.value);
+}
+function key(){ return `training:${$('date').value}:${selectedDay}`; }
+function renderDays(){
+  const wrap = $('days'); wrap.innerHTML = '';
+  Object.entries(plan).forEach(([day, p]) => {
+    const el = document.createElement('div'); el.className = 'day' + (day===selectedDay?' active':'');
+    el.onclick = () => setSelectedDay(day);
+    el.innerHTML = `<strong>${day}</strong><span>${p.title}</span>`;
+    wrap.appendChild(el);
+  });
+}
+function cardioFor(day){
+  const w = Math.max(1, Math.min(8, Number($('week').value || 1)));
+  if(day === 'Terça') return cardio[w].tue;
+  if(day === 'Quinta') return cardio[w].thu;
+  if(day === 'Domingo') return cardio[w].sun;
+  return null;
+}
+function renderSession(){
+  const p = plan[selectedDay];
+  $('sessionTitle').textContent = `${selectedDay} — ${p.title}`;
+  $('sessionMeta').textContent = p.meta;
+  $('sessionType').textContent = p.type;
+  const c = cardioFor(selectedDay);
+  let html = '';
+  if(p.items.length){
+    html += `<table><thead><tr><th>Exercício</th><th>Prescrito</th><th>Peso</th><th>Reps/execução real</th><th>RPE</th><th>Obs</th></tr></thead><tbody>`;
+    p.items.forEach((it, idx) => {
+      html += `<tr><td class="exercise" data-label="Exercício">${it[0]}</td><td data-label="Prescrito">${it[1]}</td><td data-label="Peso"><input data-field="weight" data-idx="${idx}" placeholder="kg"></td><td data-label="Real"><input data-field="actual" data-idx="${idx}" placeholder="ex: 10/10/8"></td><td data-label="RPE"><input data-field="rpe" data-idx="${idx}" placeholder="1-10"></td><td data-label="Obs"><input data-field="obs" data-idx="${idx}" placeholder="opcional"></td></tr>`;
+    });
+    html += `</tbody></table>`;
+  } else {
+    html += `<p class="small">Registre presença, intensidade e qualquer desconforto.</p>`;
+  }
+  if(c){
+    html += `<div class="card" style="background:rgba(122,167,255,.08); margin-bottom:0"><strong>Cardio da semana:</strong> ${c}<div class="small">Registre pace, sensação e se completou.</div><div style="margin-top:8px"><input id="cardioDone" placeholder="ex: completei / pace / bike ok"></div></div>`;
+  }
+  $('sessionContent').innerHTML = html;
+}
+function collectExercises(){
+  return [...document.querySelectorAll('[data-field="weight"]')].map(inp => {
+    const idx = inp.dataset.idx; const exercise = plan[selectedDay].items[idx]?.[0];
+    return { exercise, prescribed: plan[selectedDay].items[idx]?.[1], weight: inp.value, actual: document.querySelector(`[data-field="actual"][data-idx="${idx}"]`)?.value || '', rpe: document.querySelector(`[data-field="rpe"][data-idx="${idx}"]`)?.value || '', obs: document.querySelector(`[data-field="obs"][data-idx="${idx}"]`)?.value || '' };
+  });
+}
+function fillExercises(exs=[]){
+  exs.forEach((e, idx) => {
+    const fields = {weight:e.weight, actual:e.actual, rpe:e.rpe, obs:e.obs};
+    Object.entries(fields).forEach(([f,v]) => { const el = document.querySelector(`[data-field="${f}"][data-idx="${idx}"]`); if(el) el.value = v || ''; });
+  });
+}
+function saveSession(){
+  const data = { date:$('date').value, week:$('week').value, day:selectedDay, title:plan[selectedDay].title, type:plan[selectedDay].type, cardio:cardioFor(selectedDay), cardioDone:$('cardioDone')?.value || '', sleep:$('sleep').value, energy:$('energy').value, pain:$('pain').value, bodyweight:$('bodyweight').value, notes:$('notes').value, exercises:collectExercises(), savedAt:new Date().toISOString() };
+  localStorage.setItem(key(), JSON.stringify(data)); renderHistory(); showToast('Treino salvo.');
+}
+function loadToday(show=true){
+  const raw = localStorage.getItem(key());
+  ['sleep','energy','pain','bodyweight','notes'].forEach(id => $(id).value = '');
+  const cd = $('cardioDone'); if(cd) cd.value = '';
+  fillExercises([]);
+  if(!raw){ if(show) alert('Nada salvo para este dia.'); return; }
+  const d = JSON.parse(raw);
+  $('week').value = d.week || $('week').value;
+  ['sleep','energy','pain','bodyweight','notes'].forEach(id => $(id).value = d[id] || '');
+  if($('cardioDone')) $('cardioDone').value = d.cardioDone || '';
+  fillExercises(d.exercises || []);
+}
+function clearToday(){ if(confirm('Apagar registro deste dia?')){ localStorage.removeItem(key()); renderHistory(); loadToday(false); } }
+function allData(){ return Object.keys(localStorage).filter(k=>k.startsWith('training:')).map(k=>JSON.parse(localStorage.getItem(k))).sort((a,b)=>(b.date+b.day).localeCompare(a.date+a.day)); }
+function renderHistory(){
+  const data = allData().slice(0,8);
+  $('history').innerHTML = data.length ? data.map(d => `<div class="history-item"><strong>${d.date} — ${d.day}</strong> <span class="pill">semana ${d.week}</span><br>${d.title}${d.cardioDone ? `<br>Cardio: ${d.cardioDone}`:''}${d.notes ? `<br>Notas: ${d.notes}`:''}</div>`).join('') : 'Sem registros ainda.';
+}
+function exportData(){
+  const blob = new Blob([JSON.stringify(allData(), null, 2)], {type:'application/json'});
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `treino-brian-${todayISO()}.json`; a.click(); URL.revokeObjectURL(a.href);
+}
+function showToast(message){
+  let t = document.getElementById('toast');
+  if(!t){ t = document.createElement('div'); t.id='toast'; t.style.cssText='position:fixed;left:50%;bottom:92px;transform:translateX(-50%);background:#eef4ff;color:#071018;padding:10px 14px;border-radius:999px;font-weight:800;z-index:30;box-shadow:0 10px 30px rgba(0,0,0,.3)'; document.body.appendChild(t); }
+  t.textContent = message; t.style.opacity='1'; clearTimeout(window.__toastTimer); window.__toastTimer=setTimeout(()=>t.style.opacity='0',1800);
+}
+function buildSummary(){
+  const data = localStorage.getItem(key());
+  if(!data) return null;
+  const d = JSON.parse(data);
+  return [`Treino ${d.date} — ${d.day} / semana ${d.week}`, `${d.title}`, d.cardio ? `Cardio prescrito: ${d.cardio}` : '', d.cardioDone ? `Cardio feito: ${d.cardioDone}` : '', `Sono: ${d.sleep || '-'} | Energia: ${d.energy || '-'} | Dor: ${d.pain || '-'}`, d.bodyweight ? `Peso corporal: ${d.bodyweight}` : '', d.exercises?.length ? 'Exercícios:' : '', ...(d.exercises||[]).map(e=>`- ${e.exercise}: ${e.weight || '-'} kg | real ${e.actual || '-'} | RPE ${e.rpe || '-'} | ${e.obs || ''}`), d.notes ? `Notas: ${d.notes}` : ''].filter(Boolean).join('\n');
+}
+async function copySummary(){
+  const lines = buildSummary();
+  if(!lines){ showToast('Salve o treino primeiro.'); return; }
+  await navigator.clipboard.writeText(lines); showToast('Resumo copiado. Cola aqui pra eu analisar.');
+}
+async function shareSummary(){
+  const lines = buildSummary();
+  if(!lines){ showToast('Salve o treino primeiro.'); return; }
+  if(navigator.share){
+    try { await navigator.share({ title: 'Resumo do treino', text: lines }); showToast('Resumo pronto para enviar.'); return; } catch(e) { /* user cancelled */ }
+  }
+  await navigator.clipboard.writeText(lines); showToast('Compartilhar indisponível. Copiei o resumo.');
+}
+$('week').addEventListener('change', renderSession);
+$('date').addEventListener('change', () => {
+  setSelectedDay(dayFromISO($('date').value), false);
+  loadToday(false);
+});
+$('date').value = todayISO();
+selectedDay = dayFromISO($('date').value);
+renderActivitySelect();
+renderDays(); renderSession(); renderHistory(); loadToday(false);
+</script>
+</body>
+</html>

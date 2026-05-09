@@ -214,8 +214,8 @@
   <section class="card">
     <h2 style="margin-top:0">Check-in do dia</h2>
     <div class="metrics">
-      <div class="metric"><label>Sono</label><input id="sleep" placeholder="ex: 7h20" /></div>
-      <div class="metric"><label>Energia 1-10</label><input id="energy" type="number" min="1" max="10" /></div>
+      <div class="metric"><label>Sono Oura 1-100</label><input id="sleep" type="number" min="1" max="100" placeholder="ex: 82" /></div>
+      <div class="metric"><label>Preparação Oura 1-100</label><input id="readiness" type="number" min="1" max="100" placeholder="ex: 76" /></div>
       <div class="metric"><label>Dor/desconforto</label><input id="pain" placeholder="ex: joelho 2/10" /></div>
       <div class="metric"><label>Peso corporal</label><input id="bodyweight" placeholder="opcional" /></div>
     </div>
@@ -413,12 +413,12 @@ function preloadPreviousExercises(){
   return hasAny;
 }
 function saveSession(){
-  const data = { date:$('date').value, week:$('week').value, day:dayFromISO($('date').value), activityTemplate:selectedDay, title:plan[selectedDay].title, type:plan[selectedDay].type, cardio:cardioFor(selectedDay), cardioDone:$('cardioDone')?.value || '', sleep:$('sleep').value, energy:$('energy').value, pain:$('pain').value, bodyweight:$('bodyweight').value, watchDuration:$('watchDuration').value, watchCalories:$('watchCalories').value, watchAvgHr:$('watchAvgHr').value, watchDistance:$('watchDistance').value, notes:$('notes').value, exercises:collectExercises(), savedAt:new Date().toISOString() };
+  const data = { date:$('date').value, week:$('week').value, day:dayFromISO($('date').value), activityTemplate:selectedDay, title:plan[selectedDay].title, type:plan[selectedDay].type, cardio:cardioFor(selectedDay), cardioDone:$('cardioDone')?.value || '', sleep:$('sleep').value, readiness:$('readiness').value, pain:$('pain').value, bodyweight:$('bodyweight').value, watchDuration:$('watchDuration').value, watchCalories:$('watchCalories').value, watchAvgHr:$('watchAvgHr').value, watchDistance:$('watchDistance').value, notes:$('notes').value, exercises:collectExercises(), savedAt:new Date().toISOString() };
   localStorage.setItem(key(), JSON.stringify(data)); renderHistory(); showToast('Treino salvo.');
 }
 function loadToday(show=true){
   const raw = localStorage.getItem(key());
-  ['sleep','energy','pain','bodyweight','watchDuration','watchCalories','watchAvgHr','watchDistance','notes'].forEach(id => $(id).value = '');
+  ['sleep','readiness','pain','bodyweight','watchDuration','watchCalories','watchAvgHr','watchDistance','notes'].forEach(id => $(id).value = '');
   const cd = $('cardioDone'); if(cd) cd.value = '';
   fillExercises([]);
   if(!raw){
@@ -434,7 +434,7 @@ function loadToday(show=true){
     renderDays();
     renderSession();
   }
-  ['sleep','energy','pain','bodyweight','watchDuration','watchCalories','watchAvgHr','watchDistance','notes'].forEach(id => $(id).value = d[id] || '');
+  ['sleep','readiness','pain','bodyweight','watchDuration','watchCalories','watchAvgHr','watchDistance','notes'].forEach(id => $(id).value = d[id] || '');
   if($('cardioDone')) $('cardioDone').value = d.cardioDone || '';
   fillExercises(d.exercises || []);
 }
@@ -456,7 +456,7 @@ function buildSummary(){
   const data = localStorage.getItem(key());
   if(!data) return null;
   const d = JSON.parse(data);
-  return [`Treino ${d.date} — ${d.day} / semana ${d.week}`, `Atividade feita: ${d.title}`, d.activityTemplate ? `Template usado: ${d.activityTemplate}` : '', d.cardio ? `Cardio prescrito: ${d.cardio}` : '', d.cardioDone ? `Cardio feito: ${d.cardioDone}` : '', `Sono: ${d.sleep || '-'} | Energia: ${d.energy || '-'} | Dor: ${d.pain || '-'}`, d.bodyweight ? `Peso corporal: ${d.bodyweight}` : '', (d.watchDuration || d.watchCalories || d.watchAvgHr || d.watchDistance) ? `Apple Watch: duração ${d.watchDuration || '-'} | kcal ativas ${d.watchCalories || '-'} | FC média ${d.watchAvgHr || '-'} | distância ${d.watchDistance || '-'}` : '', d.exercises?.length ? 'Exercícios:' : '', ...(d.exercises||[]).map(e=>`- ${e.exercise}: ${e.weight || '-'} kg | real ${e.actual || '-'} | RPE ${e.rpe || '-'} | ${e.obs || ''}`), d.notes ? `Notas: ${d.notes}` : ''].filter(Boolean).join('\n');
+  return [`Treino ${d.date} — ${d.day} / semana ${d.week}`, `Atividade feita: ${d.title}`, d.activityTemplate ? `Template usado: ${d.activityTemplate}` : '', d.cardio ? `Cardio prescrito: ${d.cardio}` : '', d.cardioDone ? `Cardio feito: ${d.cardioDone}` : '', `Sono Oura: ${d.sleep || '-'} | Preparação Oura: ${d.readiness || '-'} | Dor: ${d.pain || '-'}`, d.bodyweight ? `Peso corporal: ${d.bodyweight}` : '', (d.watchDuration || d.watchCalories || d.watchAvgHr || d.watchDistance) ? `Apple Watch: duração ${d.watchDuration || '-'} | kcal ativas ${d.watchCalories || '-'} | FC média ${d.watchAvgHr || '-'} | distância ${d.watchDistance || '-'}` : '', d.exercises?.length ? 'Exercícios:' : '', ...(d.exercises||[]).map(e=>`- ${e.exercise}: ${e.weight || '-'} kg | real ${e.actual || '-'} | RPE ${e.rpe || '-'} | ${e.obs || ''}`), d.notes ? `Notas: ${d.notes}` : ''].filter(Boolean).join('\n');
 }
 async function copySummary(){
   const lines = buildSummary();

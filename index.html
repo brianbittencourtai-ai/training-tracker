@@ -178,7 +178,7 @@
       <div>
         <div class="pill">Semana <input id="week" type="number" min="1" max="8" value="1" style="width:72px; margin-left:6px"></div>
         <div class="pill">Data <input id="date" type="date" style="width:150px; margin-left:6px"></div>
-        <div class="pill">Atividade <select id="activitySelect" style="width:210px; margin-left:6px"></select></div>
+        <div class="pill">Hoje fiz/vou fazer <select id="activitySelect" style="width:230px; margin-left:6px"></select></div>
       </div>
       <div class="row desktop-only">
         <button class="secondary" onclick="exportData()">Exportar JSON</button>
@@ -319,11 +319,11 @@ function setSelectedDay(day, shouldLoad=true){
 function renderActivitySelect(){
   const sel = $('activitySelect');
   if(!sel) return;
-  sel.innerHTML = Object.entries(plan).map(([day,p]) => `<option value="${day}">${day} — ${p.title}</option>`).join('');
+  sel.innerHTML = Object.entries(plan).map(([day,p]) => `<option value="${day}">${p.title}</option>`).join('');
   sel.value = selectedDay;
   sel.onchange = () => setSelectedDay(sel.value);
 }
-function key(){ return `training:${$('date').value}:${selectedDay}`; }
+function key(){ return `training:${$('date').value}`; }
 function renderDays(){
   const wrap = $('days'); wrap.innerHTML = '';
   Object.entries(plan).forEach(([day, p]) => {
@@ -342,8 +342,9 @@ function cardioFor(day){
 }
 function renderSession(){
   const p = plan[selectedDay];
-  $('sessionTitle').textContent = `${selectedDay} — ${p.title}`;
-  $('sessionMeta').textContent = p.meta;
+  const calendarDay = dayFromISO($('date').value);
+  $('sessionTitle').textContent = `${calendarDay} — ${p.title}`;
+  $('sessionMeta').textContent = selectedDay === calendarDay ? p.meta : `${p.meta} · atividade alterada manualmente`;
   $('sessionType').textContent = p.type;
   const c = cardioFor(selectedDay);
   let html = '';
@@ -370,8 +371,7 @@ function collectExercises(){
 function allData(){ return Object.keys(localStorage).filter(k=>k.startsWith('training:')).map(k=>JSON.parse(localStorage.getItem(k))).sort((a,b)=>(b.savedAt || b.date || '').localeCompare(a.savedAt || a.date || '')); }
 function findPreviousExercises(){
   const currentDate = $('date').value;
-  const currentDay = selectedDay;
-  const data = allData().filter(d => !(d.date === currentDate && d.day === currentDay));
+  const data = allData().filter(d => d.date !== currentDate);
   return plan[selectedDay].items.map(([name, prescribed]) => {
     for (const session of data) {
       const match = (session.exercises || []).find(e => e.exercise === name && (e.weight || e.actual || e.rpe));
@@ -401,7 +401,7 @@ function preloadPreviousExercises(){
   return hasAny;
 }
 function saveSession(){
-  const data = { date:$('date').value, week:$('week').value, day:selectedDay, title:plan[selectedDay].title, type:plan[selectedDay].type, cardio:cardioFor(selectedDay), cardioDone:$('cardioDone')?.value || '', sleep:$('sleep').value, energy:$('energy').value, pain:$('pain').value, bodyweight:$('bodyweight').value, notes:$('notes').value, exercises:collectExercises(), savedAt:new Date().toISOString() };
+  const data = { date:$('date').value, week:$('week').value, day:dayFromISO($('date').value), activityTemplate:selectedDay, title:plan[selectedDay].title, type:plan[selectedDay].type, cardio:cardioFor(selectedDay), cardioDone:$('cardioDone')?.value || '', sleep:$('sleep').value, energy:$('energy').value, pain:$('pain').value, bodyweight:$('bodyweight').value, notes:$('notes').value, exercises:collectExercises(), savedAt:new Date().toISOString() };
   localStorage.setItem(key(), JSON.stringify(data)); renderHistory(); showToast('Treino salvo.');
 }
 function loadToday(show=true){
@@ -416,6 +416,12 @@ function loadToday(show=true){
   }
   const d = JSON.parse(raw);
   $('week').value = d.week || $('week').value;
+  if(d.activityTemplate && plan[d.activityTemplate] && d.activityTemplate !== selectedDay){
+    selectedDay = d.activityTemplate;
+    renderActivitySelect();
+    renderDays();
+    renderSession();
+  }
   ['sleep','energy','pain','bodyweight','notes'].forEach(id => $(id).value = d[id] || '');
   if($('cardioDone')) $('cardioDone').value = d.cardioDone || '';
   fillExercises(d.exercises || []);
@@ -423,7 +429,7 @@ function loadToday(show=true){
 function clearToday(){ if(confirm('Apagar registro deste dia?')){ localStorage.removeItem(key()); renderHistory(); loadToday(false); } }
 function renderHistory(){
   const data = allData().slice(0,8);
-  $('history').innerHTML = data.length ? data.map(d => `<div class="history-item"><strong>${d.date} — ${d.day}</strong> <span class="pill">semana ${d.week}</span><br>${d.title}${d.cardioDone ? `<br>Cardio: ${d.cardioDone}`:''}${d.notes ? `<br>Notas: ${d.notes}`:''}</div>`).join('') : 'Sem registros ainda.';
+  $('history').innerHTML = data.length ? data.map(d => `<div class="history-item"><strong>${d.date} — ${d.day || ''}</strong> <span class="pill">semana ${d.week}</span><br>${d.title}${d.cardioDone ? `<br>Cardio: ${d.cardioDone}`:''}${d.notes ? `<br>Notas: ${d.notes}`:''}</div>`).join('') : 'Sem registros ainda.';
 }
 function exportData(){
   const blob = new Blob([JSON.stringify(allData(), null, 2)], {type:'application/json'});
@@ -438,7 +444,7 @@ function buildSummary(){
   const data = localStorage.getItem(key());
   if(!data) return null;
   const d = JSON.parse(data);
-  return [`Treino ${d.date} — ${d.day} / semana ${d.week}`, `${d.title}`, d.cardio ? `Cardio prescrito: ${d.cardio}` : '', d.cardioDone ? `Cardio feito: ${d.cardioDone}` : '', `Sono: ${d.sleep || '-'} | Energia: ${d.energy || '-'} | Dor: ${d.pain || '-'}`, d.bodyweight ? `Peso corporal: ${d.bodyweight}` : '', d.exercises?.length ? 'Exercícios:' : '', ...(d.exercises||[]).map(e=>`- ${e.exercise}: ${e.weight || '-'} kg | real ${e.actual || '-'} | RPE ${e.rpe || '-'} | ${e.obs || ''}`), d.notes ? `Notas: ${d.notes}` : ''].filter(Boolean).join('\n');
+  return [`Treino ${d.date} — ${d.day} / semana ${d.week}`, `Atividade feita: ${d.title}`, d.activityTemplate ? `Template usado: ${d.activityTemplate}` : '', d.cardio ? `Cardio prescrito: ${d.cardio}` : '', d.cardioDone ? `Cardio feito: ${d.cardioDone}` : '', `Sono: ${d.sleep || '-'} | Energia: ${d.energy || '-'} | Dor: ${d.pain || '-'}`, d.bodyweight ? `Peso corporal: ${d.bodyweight}` : '', d.exercises?.length ? 'Exercícios:' : '', ...(d.exercises||[]).map(e=>`- ${e.exercise}: ${e.weight || '-'} kg | real ${e.actual || '-'} | RPE ${e.rpe || '-'} | ${e.obs || ''}`), d.notes ? `Notas: ${d.notes}` : ''].filter(Boolean).join('\n');
 }
 async function copySummary(){
   const lines = buildSummary();

@@ -335,10 +335,13 @@ function renderActivitySelect(){
 function key(){ return `training:${$('date').value}`; }
 function renderDays(){
   const wrap = $('days'); wrap.innerHTML = '';
+  const calendarDay = dayFromISO($('date').value);
   Object.entries(plan).forEach(([day, p]) => {
-    const el = document.createElement('div'); el.className = 'day' + (day===selectedDay?' active':'');
+    const el = document.createElement('div');
+    el.className = 'day' + (day === calendarDay ? ' active' : '');
     el.onclick = () => setSelectedDay(day);
-    el.innerHTML = `<strong>${day}</strong><span>${p.title}</span>`;
+    const override = day === calendarDay && selectedDay !== calendarDay ? `<div class="small ok" style="margin-top:6px">Hoje: ${plan[selectedDay].title}</div>` : '';
+    el.innerHTML = `<strong>${day}</strong><span>${p.title}</span>${override}`;
     wrap.appendChild(el);
   });
 }
@@ -352,8 +355,8 @@ function cardioFor(day){
 function renderSession(){
   const p = plan[selectedDay];
   const calendarDay = dayFromISO($('date').value);
-  $('sessionTitle').textContent = `${calendarDay} — ${p.title}`;
-  $('sessionMeta').textContent = selectedDay === calendarDay ? p.meta : `${p.meta} · atividade alterada manualmente`;
+  $('sessionTitle').textContent = selectedDay === calendarDay ? `${calendarDay} — ${p.title}` : `${calendarDay} — ${p.title}`;
+  $('sessionMeta').textContent = selectedDay === calendarDay ? p.meta : `${p.meta} · atividade alterada manualmente; dia calendário continua ${calendarDay}`;
   $('sessionType').textContent = p.type;
   const c = cardioFor(selectedDay);
   let html = '';

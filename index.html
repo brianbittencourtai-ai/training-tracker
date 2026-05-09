@@ -219,6 +219,15 @@
       <div class="metric"><label>Dor/desconforto</label><input id="pain" placeholder="ex: joelho 2/10" /></div>
       <div class="metric"><label>Peso corporal</label><input id="bodyweight" placeholder="opcional" /></div>
     </div>
+    <div style="margin-top:14px">
+      <div class="small" style="margin-bottom:6px;color:#72e0a8">Apple Watch / treino registrado — opcional</div>
+      <div class="metrics">
+        <div class="metric"><label>Duração</label><input id="watchDuration" placeholder="ex: 58 min" /></div>
+        <div class="metric"><label>Calorias ativas</label><input id="watchCalories" placeholder="ex: 430 kcal" /></div>
+        <div class="metric"><label>FC média</label><input id="watchAvgHr" placeholder="ex: 142 bpm" /></div>
+        <div class="metric"><label>Distância</label><input id="watchDistance" placeholder="ex: 4,2 km" /></div>
+      </div>
+    </div>
     <div style="margin-top:10px">
       <label class="small">Notas gerais</label>
       <textarea id="notes" placeholder="Como foi? O que pesou? O que ajustar?"></textarea>
@@ -401,12 +410,12 @@ function preloadPreviousExercises(){
   return hasAny;
 }
 function saveSession(){
-  const data = { date:$('date').value, week:$('week').value, day:dayFromISO($('date').value), activityTemplate:selectedDay, title:plan[selectedDay].title, type:plan[selectedDay].type, cardio:cardioFor(selectedDay), cardioDone:$('cardioDone')?.value || '', sleep:$('sleep').value, energy:$('energy').value, pain:$('pain').value, bodyweight:$('bodyweight').value, notes:$('notes').value, exercises:collectExercises(), savedAt:new Date().toISOString() };
+  const data = { date:$('date').value, week:$('week').value, day:dayFromISO($('date').value), activityTemplate:selectedDay, title:plan[selectedDay].title, type:plan[selectedDay].type, cardio:cardioFor(selectedDay), cardioDone:$('cardioDone')?.value || '', sleep:$('sleep').value, energy:$('energy').value, pain:$('pain').value, bodyweight:$('bodyweight').value, watchDuration:$('watchDuration').value, watchCalories:$('watchCalories').value, watchAvgHr:$('watchAvgHr').value, watchDistance:$('watchDistance').value, notes:$('notes').value, exercises:collectExercises(), savedAt:new Date().toISOString() };
   localStorage.setItem(key(), JSON.stringify(data)); renderHistory(); showToast('Treino salvo.');
 }
 function loadToday(show=true){
   const raw = localStorage.getItem(key());
-  ['sleep','energy','pain','bodyweight','notes'].forEach(id => $(id).value = '');
+  ['sleep','energy','pain','bodyweight','watchDuration','watchCalories','watchAvgHr','watchDistance','notes'].forEach(id => $(id).value = '');
   const cd = $('cardioDone'); if(cd) cd.value = '';
   fillExercises([]);
   if(!raw){
@@ -422,7 +431,7 @@ function loadToday(show=true){
     renderDays();
     renderSession();
   }
-  ['sleep','energy','pain','bodyweight','notes'].forEach(id => $(id).value = d[id] || '');
+  ['sleep','energy','pain','bodyweight','watchDuration','watchCalories','watchAvgHr','watchDistance','notes'].forEach(id => $(id).value = d[id] || '');
   if($('cardioDone')) $('cardioDone').value = d.cardioDone || '';
   fillExercises(d.exercises || []);
 }
@@ -444,7 +453,7 @@ function buildSummary(){
   const data = localStorage.getItem(key());
   if(!data) return null;
   const d = JSON.parse(data);
-  return [`Treino ${d.date} — ${d.day} / semana ${d.week}`, `Atividade feita: ${d.title}`, d.activityTemplate ? `Template usado: ${d.activityTemplate}` : '', d.cardio ? `Cardio prescrito: ${d.cardio}` : '', d.cardioDone ? `Cardio feito: ${d.cardioDone}` : '', `Sono: ${d.sleep || '-'} | Energia: ${d.energy || '-'} | Dor: ${d.pain || '-'}`, d.bodyweight ? `Peso corporal: ${d.bodyweight}` : '', d.exercises?.length ? 'Exercícios:' : '', ...(d.exercises||[]).map(e=>`- ${e.exercise}: ${e.weight || '-'} kg | real ${e.actual || '-'} | RPE ${e.rpe || '-'} | ${e.obs || ''}`), d.notes ? `Notas: ${d.notes}` : ''].filter(Boolean).join('\n');
+  return [`Treino ${d.date} — ${d.day} / semana ${d.week}`, `Atividade feita: ${d.title}`, d.activityTemplate ? `Template usado: ${d.activityTemplate}` : '', d.cardio ? `Cardio prescrito: ${d.cardio}` : '', d.cardioDone ? `Cardio feito: ${d.cardioDone}` : '', `Sono: ${d.sleep || '-'} | Energia: ${d.energy || '-'} | Dor: ${d.pain || '-'}`, d.bodyweight ? `Peso corporal: ${d.bodyweight}` : '', (d.watchDuration || d.watchCalories || d.watchAvgHr || d.watchDistance) ? `Apple Watch: duração ${d.watchDuration || '-'} | kcal ativas ${d.watchCalories || '-'} | FC média ${d.watchAvgHr || '-'} | distância ${d.watchDistance || '-'}` : '', d.exercises?.length ? 'Exercícios:' : '', ...(d.exercises||[]).map(e=>`- ${e.exercise}: ${e.weight || '-'} kg | real ${e.actual || '-'} | RPE ${e.rpe || '-'} | ${e.obs || ''}`), d.notes ? `Notas: ${d.notes}` : ''].filter(Boolean).join('\n');
 }
 async function copySummary(){
   const lines = buildSummary();

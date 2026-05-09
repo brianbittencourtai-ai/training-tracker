@@ -226,6 +226,7 @@
     <div class="row" style="margin-top:12px">
       <button onclick="saveSession()">Salvar treino</button>
       <button class="secondary" onclick="loadToday()">Carregar salvo de hoje</button>
+      <button class="secondary" onclick="preloadPreviousExercises()">Carregar anterior</button>
       <button class="danger" onclick="clearToday()">Apagar treino de hoje</button>
     </div>
   </section>
@@ -366,11 +367,38 @@ function collectExercises(){
     return { exercise, prescribed: plan[selectedDay].items[idx]?.[1], weight: inp.value, actual: document.querySelector(`[data-field="actual"][data-idx="${idx}"]`)?.value || '', rpe: document.querySelector(`[data-field="rpe"][data-idx="${idx}"]`)?.value || '', obs: document.querySelector(`[data-field="obs"][data-idx="${idx}"]`)?.value || '' };
   });
 }
+function allData(){ return Object.keys(localStorage).filter(k=>k.startsWith('training:')).map(k=>JSON.parse(localStorage.getItem(k))).sort((a,b)=>(b.savedAt || b.date || '').localeCompare(a.savedAt || a.date || '')); }
+function findPreviousExercises(){
+  const currentDate = $('date').value;
+  const currentDay = selectedDay;
+  const data = allData().filter(d => !(d.date === currentDate && d.day === currentDay));
+  return plan[selectedDay].items.map(([name, prescribed]) => {
+    for (const session of data) {
+      const match = (session.exercises || []).find(e => e.exercise === name && (e.weight || e.actual || e.rpe));
+      if(match) return { exercise:name, prescribed, weight:match.weight || '', actual:match.actual || '', rpe:match.rpe || '', obs:'' };
+    }
+    return { exercise:name, prescribed, weight:'', actual:'', rpe:'', obs:'' };
+  });
+}
 function fillExercises(exs=[]){
   exs.forEach((e, idx) => {
     const fields = {weight:e.weight, actual:e.actual, rpe:e.rpe, obs:e.obs};
     Object.entries(fields).forEach(([f,v]) => { const el = document.querySelector(`[data-field="${f}"][data-idx="${idx}"]`); if(el) el.value = v || ''; });
   });
+}
+function preloadPreviousExercises(){
+  if(!plan[selectedDay].items.length) return false;
+  const previous = findPreviousExercises();
+  const hasAny = previous.some(e => e.weight || e.actual || e.rpe);
+  if(hasAny) {
+    fillExercises(previous);
+    const meta = document.createElement('div');
+    meta.className = 'small ok';
+    meta.style.marginTop = '8px';
+    meta.textContent = 'Carreguei peso/reps/RPE do último registro deste exercício. Ajuste só o que mudou.';
+    $('sessionContent').appendChild(meta);
+  }
+  return hasAny;
 }
 function saveSession(){
   const data = { date:$('date').value, week:$('week').value, day:selectedDay, title:plan[selectedDay].title, type:plan[selectedDay].type, cardio:cardioFor(selectedDay), cardioDone:$('cardioDone')?.value || '', sleep:$('sleep').value, energy:$('energy').value, pain:$('pain').value, bodyweight:$('bodyweight').value, notes:$('notes').value, exercises:collectExercises(), savedAt:new Date().toISOString() };
@@ -381,7 +409,11 @@ function loadToday(show=true){
   ['sleep','energy','pain','bodyweight','notes'].forEach(id => $(id).value = '');
   const cd = $('cardioDone'); if(cd) cd.value = '';
   fillExercises([]);
-  if(!raw){ if(show) alert('Nada salvo para este dia.'); return; }
+  if(!raw){
+    const loadedPrevious = preloadPreviousExercises();
+    if(show && !loadedPrevious) showToast('Nada salvo e sem histórico anterior.');
+    return;
+  }
   const d = JSON.parse(raw);
   $('week').value = d.week || $('week').value;
   ['sleep','energy','pain','bodyweight','notes'].forEach(id => $(id).value = d[id] || '');
@@ -389,7 +421,6 @@ function loadToday(show=true){
   fillExercises(d.exercises || []);
 }
 function clearToday(){ if(confirm('Apagar registro deste dia?')){ localStorage.removeItem(key()); renderHistory(); loadToday(false); } }
-function allData(){ return Object.keys(localStorage).filter(k=>k.startsWith('training:')).map(k=>JSON.parse(localStorage.getItem(k))).sort((a,b)=>(b.date+b.day).localeCompare(a.date+a.day)); }
 function renderHistory(){
   const data = allData().slice(0,8);
   $('history').innerHTML = data.length ? data.map(d => `<div class="history-item"><strong>${d.date} — ${d.day}</strong> <span class="pill">semana ${d.week}</span><br>${d.title}${d.cardioDone ? `<br>Cardio: ${d.cardioDone}`:''}${d.notes ? `<br>Notas: ${d.notes}`:''}</div>`).join('') : 'Sem registros ainda.';

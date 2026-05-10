@@ -352,6 +352,55 @@ function cardioFor(day){
   if(day === 'Domingo') return cardio[w].sun;
   return null;
 }
+const exerciseInputs = {
+  strength: ['weight', 'actual', 'rpe', 'obs'],
+  calf: ['weight', 'actual', 'rpe', 'obs'],
+  durationOnly: ['duration', 'rpe', 'obs'],
+  loadedCarry: ['weight', 'duration', 'rpe', 'obs'],
+  mixedCore: ['variant', 'weight', 'actual', 'duration', 'rpe', 'obs']
+};
+const exerciseInputModes = {
+  // Treino A
+  'Goblet squat ou leg press': 'strength',
+  'Supino halteres ou chest press': 'strength',
+  'Remada': 'strength',
+  'Terra romeno': 'strength',
+  'Desenvolvimento ombro': 'strength',
+  'Prancha': 'durationOnly',
+  'Farmer carry': 'loadedCarry',
+
+  // Treino B
+  'Leg press ou avanço': 'strength',
+  'Puxada': 'strength',
+  'Supino inclinado': 'strength',
+  'Hip thrust': 'strength',
+  'Elevação lateral': 'strength',
+  'Pallof press ou prancha lateral': 'mixedCore',
+  'Face pull ou crucifixo inverso': 'strength'
+};
+const fieldLabels = { variant: 'Variação', weight: 'Peso', actual: 'Reps/execução real', duration: 'Tempo', rpe: 'RPE', obs: 'Obs' };
+const fieldPlaceholders = { variant: 'ex: pallof ou prancha lateral', weight: 'kg', actual: 'ex: 10/10/8 ou 12/lado', duration: 'ex: 45s ou 3x30s', rpe: '1-10', obs: 'opcional' };
+const inputModeNotes = {
+  strength: 'peso + reps',
+  calf: 'peso + reps de panturrilha',
+  durationOnly: 'tempo, sem peso',
+  loadedCarry: 'peso + tempo',
+  mixedCore: 'escolha a variação; Pallof usa peso/reps, prancha lateral usa tempo'
+};
+function exerciseName(item){ return item?.[0] || ''; }
+function exercisePrescription(item){ return item?.[1] || ''; }
+function modeForExercise(name){ return exerciseInputModes[name] || 'strength'; }
+function fieldsForExercise(name){
+  const mode = modeForExercise(name);
+  return exerciseInputs[mode] || exerciseInputs.strength;
+}
+function renderExerciseInput(field, idx){
+  return `<td data-label="${fieldLabels[field]}"><input data-field="${field}" data-idx="${idx}" placeholder="${fieldPlaceholders[field]}"></td>`;
+}
+function renderInputHint(name){
+  const note = inputModeNotes[modeForExercise(name)];
+  return note ? `<div class="small" style="margin-top:4px">Input: ${note}</div>` : '';
+}
 function renderSession(){
   const p = plan[selectedDay];
   const calendarDay = dayFromISO($('date').value);
@@ -361,23 +410,29 @@ function renderSession(){
   const c = cardioFor(selectedDay);
   let html = '';
   if(p.items.length){
-    html += `<table><thead><tr><th>Exercício</th><th>Prescrito</th><th>Peso</th><th>Reps/execução real</th><th>RPE</th><th>Obs</th></tr></thead><tbody>`;
+    html += `<table><thead><tr><th>Exercício</th><th>Prescrito</th><th>Inputs</th><th>RPE</th><th>Obs</th></tr></thead><tbody>`;
     p.items.forEach((it, idx) => {
-      html += `<tr><td class="exercise" data-label="Exercício">${it[0]}</td><td data-label="Prescrito">${it[1]}</td><td data-label="Peso"><input data-field="weight" data-idx="${idx}" placeholder="kg"></td><td data-label="Real"><input data-field="actual" data-idx="${idx}" placeholder="ex: 10/10/8"></td><td data-label="RPE"><input data-field="rpe" data-idx="${idx}" placeholder="1-10"></td><td data-label="Obs"><input data-field="obs" data-idx="${idx}" placeholder="opcional"></td></tr>`;
+      const name = exerciseName(it);
+      const fields = fieldsForExercise(name);
+      html += `<tr><td class="exercise" data-label="Exercício">${name}${renderInputHint(name)}</td><td data-label="Prescrito">${exercisePrescription(it)}</td>${fields.map(f => renderExerciseInput(f, idx)).join('')}</tr>`;
     });
     html += `</tbody></table>`;
   } else {
     html += `<p class="small">Registre presença, intensidade e qualquer desconforto.</p>`;
   }
   if(c){
-    html += `<div class="card" style="background:rgba(122,167,255,.08); margin-bottom:0"><strong>Cardio da semana:</strong> ${c}<div class="small">Registre pace, sensação e se completou.</div><div style="margin-top:8px"><input id="cardioDone" placeholder="ex: completei / pace / bike ok"></div></div>`;
+    html += `<div class="card" style="background:rgba(122,167,255,.08); margin-bottom:0"><strong>Cardio da semana:</strong> ${c}<div class="small">Selecione o cardio feito e preencha só o que se aplica.</div><div class="metrics" style="margin-top:10px"><div class="metric"><label>Cardio feito</label><select id="cardioMode"><option value="">Selecionar</option><option>Corrida + bike</option><option>Corrida</option><option>Bike</option><option>Elíptico</option><option>Esteira inclinada</option><option>Caminhada</option><option>Outro</option><option>Não fiz cardio</option></select></div><div class="metric"><label>Corrida</label><input id="cardioRunKm" placeholder="km — ex: 2,5"></div><div class="metric"><label>Bike</label><input id="cardioBikeKm" placeholder="km — ex: 4"></div><div class="metric"><label>Tempo / intensidade</label><input id="cardioDuration" placeholder="ex: 20min RPE 6"></div></div><div style="margin-top:8px"><input id="cardioDone" placeholder="Obs: elíptico, pace, sensação, ajustes"></div></div>`;
   }
   $('sessionContent').innerHTML = html;
 }
 function collectExercises(){
-  return [...document.querySelectorAll('[data-field="weight"]')].map(inp => {
-    const idx = inp.dataset.idx; const exercise = plan[selectedDay].items[idx]?.[0];
-    return { exercise, prescribed: plan[selectedDay].items[idx]?.[1], weight: inp.value, actual: document.querySelector(`[data-field="actual"][data-idx="${idx}"]`)?.value || '', rpe: document.querySelector(`[data-field="rpe"][data-idx="${idx}"]`)?.value || '', obs: document.querySelector(`[data-field="obs"][data-idx="${idx}"]`)?.value || '' };
+  return plan[selectedDay].items.map((item, idx) => {
+    const exercise = exerciseName(item);
+    const data = { exercise, prescribed: exercisePrescription(item), inputMode: modeForExercise(exercise), variant: '', weight: '', actual: '', duration: '', rpe: '', obs: '' };
+    fieldsForExercise(exercise).forEach(field => {
+      data[field] = document.querySelector(`[data-field="${field}"][data-idx="${idx}"]`)?.value || '';
+    });
+    return data;
   });
 }
 function allData(){ return Object.keys(localStorage).filter(k=>k.startsWith('training:')).map(k=>JSON.parse(localStorage.getItem(k))).sort((a,b)=>(b.savedAt || b.date || '').localeCompare(a.savedAt || a.date || '')); }
@@ -386,40 +441,40 @@ function findPreviousExercises(){
   const data = allData().filter(d => d.date !== currentDate);
   return plan[selectedDay].items.map(([name, prescribed]) => {
     for (const session of data) {
-      const match = (session.exercises || []).find(e => e.exercise === name && (e.weight || e.actual || e.rpe));
-      if(match) return { exercise:name, prescribed, weight:match.weight || '', actual:match.actual || '', rpe:match.rpe || '', obs:'' };
+      const match = (session.exercises || []).find(e => e.exercise === name && (e.variant || e.weight || e.actual || e.duration || e.rpe));
+      if(match) return { exercise:name, prescribed, inputMode:modeForExercise(name), variant:match.variant || '', weight:match.weight || '', actual:match.actual || '', duration:match.duration || '', rpe:match.rpe || '', obs:'' };
     }
-    return { exercise:name, prescribed, weight:'', actual:'', rpe:'', obs:'' };
+    return { exercise:name, prescribed, inputMode:modeForExercise(name), variant:'', weight:'', actual:'', duration:'', rpe:'', obs:'' };
   });
 }
 function fillExercises(exs=[]){
   exs.forEach((e, idx) => {
-    const fields = {weight:e.weight, actual:e.actual, rpe:e.rpe, obs:e.obs};
+    const fields = {variant:e.variant, weight:e.weight, actual:e.actual, duration:e.duration, rpe:e.rpe, obs:e.obs};
     Object.entries(fields).forEach(([f,v]) => { const el = document.querySelector(`[data-field="${f}"][data-idx="${idx}"]`); if(el) el.value = v || ''; });
   });
 }
 function preloadPreviousExercises(){
   if(!plan[selectedDay].items.length) return false;
   const previous = findPreviousExercises();
-  const hasAny = previous.some(e => e.weight || e.actual || e.rpe);
+  const hasAny = previous.some(e => e.variant || e.weight || e.actual || e.duration || e.rpe);
   if(hasAny) {
     fillExercises(previous);
     const meta = document.createElement('div');
     meta.className = 'small ok';
     meta.style.marginTop = '8px';
-    meta.textContent = 'Carreguei peso/reps/RPE do último registro deste exercício. Ajuste só o que mudou.';
+    meta.textContent = 'Carreguei inputs do último registro deste exercício. Ajuste só o que mudou.';
     $('sessionContent').appendChild(meta);
   }
   return hasAny;
 }
 function saveSession(){
-  const data = { date:$('date').value, week:$('week').value, day:dayFromISO($('date').value), activityTemplate:selectedDay, title:plan[selectedDay].title, type:plan[selectedDay].type, cardio:cardioFor(selectedDay), cardioDone:$('cardioDone')?.value || '', sleep:$('sleep').value, readiness:$('readiness').value, pain:$('pain').value, bodyweight:$('bodyweight').value, watchDuration:$('watchDuration').value, watchCalories:$('watchCalories').value, watchAvgHr:$('watchAvgHr').value, watchDistance:$('watchDistance').value, notes:$('notes').value, exercises:collectExercises(), savedAt:new Date().toISOString() };
+  const data = { date:$('date').value, week:$('week').value, day:dayFromISO($('date').value), activityTemplate:selectedDay, title:plan[selectedDay].title, type:plan[selectedDay].type, cardio:cardioFor(selectedDay), cardioMode:$('cardioMode')?.value || '', cardioRunKm:$('cardioRunKm')?.value || '', cardioBikeKm:$('cardioBikeKm')?.value || '', cardioDuration:$('cardioDuration')?.value || '', cardioDone:$('cardioDone')?.value || '', sleep:$('sleep').value, readiness:$('readiness').value, pain:$('pain').value, bodyweight:$('bodyweight').value, watchDuration:$('watchDuration').value, watchCalories:$('watchCalories').value, watchAvgHr:$('watchAvgHr').value, watchDistance:$('watchDistance').value, notes:$('notes').value, exercises:collectExercises(), savedAt:new Date().toISOString() };
   localStorage.setItem(key(), JSON.stringify(data)); renderHistory(); showToast('Treino salvo.');
 }
 function loadToday(show=true){
   const raw = localStorage.getItem(key());
   ['sleep','readiness','pain','bodyweight','watchDuration','watchCalories','watchAvgHr','watchDistance','notes'].forEach(id => $(id).value = '');
-  const cd = $('cardioDone'); if(cd) cd.value = '';
+  ['cardioMode','cardioRunKm','cardioBikeKm','cardioDuration','cardioDone'].forEach(id => { const el = $(id); if(el) el.value = ''; });
   fillExercises([]);
   if(!raw){
     const loadedPrevious = preloadPreviousExercises();
@@ -435,13 +490,13 @@ function loadToday(show=true){
     renderSession();
   }
   ['sleep','readiness','pain','bodyweight','watchDuration','watchCalories','watchAvgHr','watchDistance','notes'].forEach(id => $(id).value = d[id] || '');
-  if($('cardioDone')) $('cardioDone').value = d.cardioDone || '';
+  ['cardioMode','cardioRunKm','cardioBikeKm','cardioDuration','cardioDone'].forEach(id => { const el = $(id); if(el) el.value = d[id] || ''; });
   fillExercises(d.exercises || []);
 }
 function clearToday(){ if(confirm('Apagar registro deste dia?')){ localStorage.removeItem(key()); renderHistory(); loadToday(false); } }
 function renderHistory(){
   const data = allData().slice(0,8);
-  $('history').innerHTML = data.length ? data.map(d => `<div class="history-item"><strong>${d.date} — ${d.day || ''}</strong> <span class="pill">semana ${d.week}</span><br>${d.title}${d.cardioDone ? `<br>Cardio: ${d.cardioDone}`:''}${d.notes ? `<br>Notas: ${d.notes}`:''}</div>`).join('') : 'Sem registros ainda.';
+  $('history').innerHTML = data.length ? data.map(d => `<div class="history-item"><strong>${d.date} — ${d.day || ''}</strong> <span class="pill">semana ${d.week}</span><br>${d.title}${(d.cardioMode || d.cardioRunKm || d.cardioBikeKm || d.cardioDuration || d.cardioDone) ? `<br>Cardio: ${[d.cardioMode, d.cardioRunKm ? `corrida ${d.cardioRunKm} km` : '', d.cardioBikeKm ? `bike ${d.cardioBikeKm} km` : '', d.cardioDuration, d.cardioDone].filter(Boolean).join(' | ')}`:''}${d.notes ? `<br>Notas: ${d.notes}`:''}</div>`).join('') : 'Sem registros ainda.';
 }
 function exportData(){
   const blob = new Blob([JSON.stringify(allData(), null, 2)], {type:'application/json'});
@@ -456,7 +511,7 @@ function buildSummary(){
   const data = localStorage.getItem(key());
   if(!data) return null;
   const d = JSON.parse(data);
-  return [`Treino ${d.date} — ${d.day} / semana ${d.week}`, `Atividade feita: ${d.title}`, d.activityTemplate ? `Template usado: ${d.activityTemplate}` : '', d.cardio ? `Cardio prescrito: ${d.cardio}` : '', d.cardioDone ? `Cardio feito: ${d.cardioDone}` : '', `Sono Oura: ${d.sleep || '-'} | Preparação Oura: ${d.readiness || '-'} | Dor: ${d.pain || '-'}`, d.bodyweight ? `Peso corporal: ${d.bodyweight}` : '', (d.watchDuration || d.watchCalories || d.watchAvgHr || d.watchDistance) ? `Apple Watch: duração ${d.watchDuration || '-'} | kcal ativas ${d.watchCalories || '-'} | FC média ${d.watchAvgHr || '-'} | distância ${d.watchDistance || '-'}` : '', d.exercises?.length ? 'Exercícios:' : '', ...(d.exercises||[]).map(e=>`- ${e.exercise}: ${e.weight || '-'} kg | real ${e.actual || '-'} | RPE ${e.rpe || '-'} | ${e.obs || ''}`), d.notes ? `Notas: ${d.notes}` : ''].filter(Boolean).join('\n');
+  return [`Treino ${d.date} — ${d.day} / semana ${d.week}`, `Atividade feita: ${d.title}`, d.activityTemplate ? `Template usado: ${d.activityTemplate}` : '', d.cardio ? `Cardio prescrito: ${d.cardio}` : '', (d.cardioMode || d.cardioRunKm || d.cardioBikeKm || d.cardioDuration || d.cardioDone) ? `Cardio feito: ${d.cardioMode || '-'} | corrida ${d.cardioRunKm || '-'} km | bike ${d.cardioBikeKm || '-'} km | tempo/intensidade ${d.cardioDuration || '-'} | obs ${d.cardioDone || '-'}` : '', `Sono Oura: ${d.sleep || '-'} | Preparação Oura: ${d.readiness || '-'} | Dor: ${d.pain || '-'}`, d.bodyweight ? `Peso corporal: ${d.bodyweight}` : '', (d.watchDuration || d.watchCalories || d.watchAvgHr || d.watchDistance) ? `Apple Watch: duração ${d.watchDuration || '-'} | kcal ativas ${d.watchCalories || '-'} | FC média ${d.watchAvgHr || '-'} | distância ${d.watchDistance || '-'}` : '', d.exercises?.length ? 'Exercícios:' : '', ...(d.exercises||[]).map(e=>`- ${e.exercise}: ${e.variant ? 'variação ' + e.variant + ' | ' : ''}${e.weight ? e.weight + ' kg | ' : ''}${e.duration ? 'tempo ' + e.duration + ' | ' : ''}${e.actual ? 'real ' + e.actual + ' | ' : ''}RPE ${e.rpe || '-'} | ${e.obs || ''}`), d.notes ? `Notas: ${d.notes}` : ''].filter(Boolean).join('\n');
 }
 async function copySummary(){
   const lines = buildSummary();

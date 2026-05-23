@@ -94,6 +94,8 @@
     .metrics { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
     .metric { background: rgba(255,255,255,.04); border:1px solid var(--line); border-radius: 14px; padding: 10px; }
     .metric label { display:block; color:var(--muted); font-size:12px; margin-bottom:5px; }
+    .cardio-grid { display: grid; grid-template-columns: 1.15fr repeat(3, 1fr); gap: 10px; margin-top: 10px; }
+    .cardio-label { grid-column: 1 / -1; color: var(--muted); font-size: 12px; font-weight: 700; margin-top: 4px; }
     .mobile-actions { display:none; }
     @media (max-width: 760px) {
       header { padding: 18px 14px 8px; }
@@ -127,6 +129,7 @@
       .day strong { font-size: 13px; }
       .day span { font-size: 11px; }
       .metrics { grid-template-columns: repeat(2, 1fr); gap:8px; }
+      .cardio-grid { grid-template-columns: repeat(2, 1fr); gap: 8px; }
       .metric { padding: 9px; }
       #sessionTitle { font-size: 20px; line-height:1.15; }
       table, thead, tbody, th, td, tr { display:block; }
@@ -352,6 +355,14 @@ function cardioFor(day){
   if(day === 'Domingo') return cardio[w].sun;
   return null;
 }
+const cardioTypes = ['Corrida', 'Bike', 'Elíptico', 'Esteira inclinada', 'Caminhada', 'Outro', 'Não fiz cardio'];
+function renderCardioTypeSelect(idx){
+  return `<select id="cardioType${idx}"><option value="">Selecionar</option>${cardioTypes.map(type => `<option>${type}</option>`).join('')}</select>`;
+}
+function renderCardioBlock(){
+  const rows = [0, 1].map(idx => `<div class="cardio-label">Cardio ${idx + 1}</div><div class="metric"><label>Tipo</label>${renderCardioTypeSelect(idx)}</div><div class="metric"><label>Distância</label><input id="cardioDistance${idx}" placeholder="km — opcional"></div><div class="metric"><label>Tempo</label><input id="cardioDuration${idx}" placeholder="ex: 20min"></div><div class="metric"><label>Intensidade</label><input id="cardioIntensity${idx}" placeholder="ex: RPE 6"></div>`).join('');
+  return `<div class="card" style="background:rgba(122,167,255,.08); margin-bottom:0"><strong>Cardio</strong><div class="small">Pré-preencho com a última sessão salva. Ajuste o tipo e os números do que você fez hoje.</div><div class="cardio-grid">${rows}</div><div style="margin-top:8px"><input id="cardioDone" placeholder="Obs: pace, sensação, ajustes"></div></div>`;
+}
 const exerciseInputs = {
   strength: ['weight', 'actual', 'rpe', 'obs'],
   calf: ['weight', 'actual', 'rpe', 'obs'],
@@ -421,7 +432,7 @@ function renderSession(){
     html += `<p class="small">Registre presença, intensidade e qualquer desconforto.</p>`;
   }
   if(c){
-    html += `<div class="card" style="background:rgba(122,167,255,.08); margin-bottom:0"><strong>Cardio da semana:</strong> ${c}<div class="small">Selecione o cardio feito e preencha só o que se aplica.</div><div class="metrics" style="margin-top:10px"><div class="metric"><label>Cardio feito</label><select id="cardioMode"><option value="">Selecionar</option><option>Corrida + bike</option><option>Corrida</option><option>Bike</option><option>Elíptico</option><option>Esteira inclinada</option><option>Caminhada</option><option>Outro</option><option>Não fiz cardio</option></select></div><div class="metric"><label>Corrida</label><input id="cardioRunKm" placeholder="km — ex: 2,5"></div><div class="metric"><label>Bike</label><input id="cardioBikeKm" placeholder="km — ex: 4"></div><div class="metric"><label>Tempo / intensidade</label><input id="cardioDuration" placeholder="ex: 20min RPE 6"></div></div><div style="margin-top:8px"><input id="cardioDone" placeholder="Obs: elíptico, pace, sensação, ajustes"></div></div>`;
+    html += renderCardioBlock();
   }
   $('sessionContent').innerHTML = html;
 }
@@ -434,6 +445,57 @@ function collectExercises(){
     });
     return data;
   });
+}
+function emptyCardioEntry(){ return { type: '', distance: '', duration: '', intensity: '' }; }
+function collectCardioEntries(){
+  return [0, 1].map(idx => ({
+    type: $(`cardioType${idx}`)?.value || '',
+    distance: $(`cardioDistance${idx}`)?.value || '',
+    duration: $(`cardioDuration${idx}`)?.value || '',
+    intensity: $(`cardioIntensity${idx}`)?.value || ''
+  })).filter(entry => entry.type || entry.distance || entry.duration || entry.intensity);
+}
+function legacyCardioEntries(session){
+  const entries = [];
+  if(session.cardioRunKm) entries.push({ type: 'Corrida', distance: session.cardioRunKm, duration: '', intensity: '' });
+  if(session.cardioBikeKm) entries.push({ type: 'Bike', distance: session.cardioBikeKm, duration: '', intensity: '' });
+  if(!entries.length && session.cardioMode && session.cardioMode !== 'Corrida + bike') entries.push({ type: session.cardioMode, distance: '', duration: '', intensity: session.cardioDuration || '' });
+  if(entries.length && session.cardioDuration) entries[entries.length - 1].intensity = [entries[entries.length - 1].intensity, session.cardioDuration].filter(Boolean).join(' ');
+  return entries;
+}
+function normalizeCardioEntries(session){
+  if(Array.isArray(session.cardioEntries)) return session.cardioEntries;
+  return legacyCardioEntries(session);
+}
+function formatCardioEntry(entry){
+  return [entry.type, entry.distance ? `${entry.distance} km` : '', entry.duration, entry.intensity].filter(Boolean).join(' ');
+}
+function fillCardio(entries=[]){
+  const normalized = [entries[0] || emptyCardioEntry(), entries[1] || emptyCardioEntry()];
+  normalized.forEach((entry, idx) => {
+    const values = { type: entry.type, distance: entry.distance, duration: entry.duration, intensity: entry.intensity };
+    Object.entries(values).forEach(([field, value]) => {
+      const id = field === 'type' ? `cardioType${idx}` : `cardio${field[0].toUpperCase() + field.slice(1)}${idx}`;
+      const el = $(id);
+      if(el) el.value = value || '';
+    });
+  });
+}
+function findPreviousCardio(){
+  const currentDate = $('date').value;
+  for (const session of allData().filter(d => d.date !== currentDate)) {
+    const entries = normalizeCardioEntries(session).filter(entry => entry.type || entry.distance || entry.duration || entry.intensity);
+    if(entries.length) return { entries, obs: session.cardioDone || '' };
+  }
+  return { entries: [], obs: '' };
+}
+function preloadPreviousCardio(){
+  const previous = findPreviousCardio();
+  if(!previous.entries.length && !previous.obs) return false;
+  fillCardio(previous.entries);
+  const obs = $('cardioDone');
+  if(obs) obs.value = previous.obs || '';
+  return true;
 }
 function allData(){ return Object.keys(localStorage).filter(k=>k.startsWith('training:')).map(k=>JSON.parse(localStorage.getItem(k))).sort((a,b)=>(b.savedAt || b.date || '').localeCompare(a.savedAt || a.date || '')); }
 function findPreviousExercises(){
@@ -468,17 +530,19 @@ function preloadPreviousExercises(){
   return hasAny;
 }
 function saveSession(){
-  const data = { date:$('date').value, week:$('week').value, day:dayFromISO($('date').value), activityTemplate:selectedDay, title:plan[selectedDay].title, type:plan[selectedDay].type, cardio:cardioFor(selectedDay), cardioMode:$('cardioMode')?.value || '', cardioRunKm:$('cardioRunKm')?.value || '', cardioBikeKm:$('cardioBikeKm')?.value || '', cardioDuration:$('cardioDuration')?.value || '', cardioDone:$('cardioDone')?.value || '', sleep:$('sleep').value, readiness:$('readiness').value, pain:$('pain').value, bodyweight:$('bodyweight').value, watchDuration:$('watchDuration').value, watchCalories:$('watchCalories').value, watchAvgHr:$('watchAvgHr').value, watchDistance:$('watchDistance').value, notes:$('notes').value, exercises:collectExercises(), savedAt:new Date().toISOString() };
+  const data = { date:$('date').value, week:$('week').value, day:dayFromISO($('date').value), activityTemplate:selectedDay, title:plan[selectedDay].title, type:plan[selectedDay].type, cardio:cardioFor(selectedDay), cardioEntries:collectCardioEntries(), cardioDone:$('cardioDone')?.value || '', sleep:$('sleep').value, readiness:$('readiness').value, pain:$('pain').value, bodyweight:$('bodyweight').value, watchDuration:$('watchDuration').value, watchCalories:$('watchCalories').value, watchAvgHr:$('watchAvgHr').value, watchDistance:$('watchDistance').value, notes:$('notes').value, exercises:collectExercises(), savedAt:new Date().toISOString() };
   localStorage.setItem(key(), JSON.stringify(data)); renderHistory(); showToast('Treino salvo.');
 }
 function loadToday(show=true){
   const raw = localStorage.getItem(key());
   ['sleep','readiness','pain','bodyweight','watchDuration','watchCalories','watchAvgHr','watchDistance','notes'].forEach(id => $(id).value = '');
-  ['cardioMode','cardioRunKm','cardioBikeKm','cardioDuration','cardioDone'].forEach(id => { const el = $(id); if(el) el.value = ''; });
+  fillCardio([]);
+  ['cardioDone'].forEach(id => { const el = $(id); if(el) el.value = ''; });
   fillExercises([]);
   if(!raw){
     const loadedPrevious = preloadPreviousExercises();
-    if(show && !loadedPrevious) showToast('Nada salvo e sem histórico anterior.');
+    const loadedPreviousCardio = preloadPreviousCardio();
+    if(show && !loadedPrevious && !loadedPreviousCardio) showToast('Nada salvo e sem histórico anterior.');
     return;
   }
   const d = JSON.parse(raw);
@@ -490,13 +554,17 @@ function loadToday(show=true){
     renderSession();
   }
   ['sleep','readiness','pain','bodyweight','watchDuration','watchCalories','watchAvgHr','watchDistance','notes'].forEach(id => $(id).value = d[id] || '');
-  ['cardioMode','cardioRunKm','cardioBikeKm','cardioDuration','cardioDone'].forEach(id => { const el = $(id); if(el) el.value = d[id] || ''; });
+  fillCardio(normalizeCardioEntries(d));
+  ['cardioDone'].forEach(id => { const el = $(id); if(el) el.value = d[id] || ''; });
   fillExercises(d.exercises || []);
 }
 function clearToday(){ if(confirm('Apagar registro deste dia?')){ localStorage.removeItem(key()); renderHistory(); loadToday(false); } }
 function renderHistory(){
   const data = allData().slice(0,8);
-  $('history').innerHTML = data.length ? data.map(d => `<div class="history-item"><strong>${d.date} — ${d.day || ''}</strong> <span class="pill">semana ${d.week}</span><br>${d.title}${(d.cardioMode || d.cardioRunKm || d.cardioBikeKm || d.cardioDuration || d.cardioDone) ? `<br>Cardio: ${[d.cardioMode, d.cardioRunKm ? `corrida ${d.cardioRunKm} km` : '', d.cardioBikeKm ? `bike ${d.cardioBikeKm} km` : '', d.cardioDuration, d.cardioDone].filter(Boolean).join(' | ')}`:''}${d.notes ? `<br>Notas: ${d.notes}`:''}</div>`).join('') : 'Sem registros ainda.';
+  $('history').innerHTML = data.length ? data.map(d => {
+    const cardioText = [...normalizeCardioEntries(d).map(formatCardioEntry), d.cardioDone].filter(Boolean).join(' | ');
+    return `<div class="history-item"><strong>${d.date} — ${d.day || ''}</strong> <span class="pill">semana ${d.week}</span><br>${d.title}${cardioText ? `<br>Cardio: ${cardioText}`:''}${d.notes ? `<br>Notas: ${d.notes}`:''}</div>`;
+  }).join('') : 'Sem registros ainda.';
 }
 function exportData(){
   const blob = new Blob([JSON.stringify(allData(), null, 2)], {type:'application/json'});
@@ -511,7 +579,8 @@ function buildSummary(){
   const data = localStorage.getItem(key());
   if(!data) return null;
   const d = JSON.parse(data);
-  return [`Treino ${d.date} — ${d.day} / semana ${d.week}`, `Atividade feita: ${d.title}`, d.activityTemplate ? `Template usado: ${d.activityTemplate}` : '', d.cardio ? `Cardio prescrito: ${d.cardio}` : '', (d.cardioMode || d.cardioRunKm || d.cardioBikeKm || d.cardioDuration || d.cardioDone) ? `Cardio feito: ${d.cardioMode || '-'} | corrida ${d.cardioRunKm || '-'} km | bike ${d.cardioBikeKm || '-'} km | tempo/intensidade ${d.cardioDuration || '-'} | obs ${d.cardioDone || '-'}` : '', `Sono Oura: ${d.sleep || '-'} | Preparação Oura: ${d.readiness || '-'} | Dor: ${d.pain || '-'}`, d.bodyweight ? `Peso corporal: ${d.bodyweight}` : '', (d.watchDuration || d.watchCalories || d.watchAvgHr || d.watchDistance) ? `Apple Watch: duração ${d.watchDuration || '-'} | kcal ativas ${d.watchCalories || '-'} | FC média ${d.watchAvgHr || '-'} | distância ${d.watchDistance || '-'}` : '', d.exercises?.length ? 'Exercícios:' : '', ...(d.exercises||[]).map(e=>`- ${e.exercise}: ${e.variant ? 'variação ' + e.variant + ' | ' : ''}${e.weight ? e.weight + ' kg | ' : ''}${e.duration ? 'tempo ' + e.duration + ' | ' : ''}${e.actual ? 'real ' + e.actual + ' | ' : ''}RPE ${e.rpe || '-'} | ${e.obs || ''}`), d.notes ? `Notas: ${d.notes}` : ''].filter(Boolean).join('\n');
+  const cardioText = [...normalizeCardioEntries(d).map(formatCardioEntry), d.cardioDone ? `obs ${d.cardioDone}` : ''].filter(Boolean).join(' | ');
+  return [`Treino ${d.date} — ${d.day} / semana ${d.week}`, `Atividade feita: ${d.title}`, d.activityTemplate ? `Template usado: ${d.activityTemplate}` : '', cardioText ? `Cardio feito: ${cardioText}` : '', `Sono Oura: ${d.sleep || '-'} | Preparação Oura: ${d.readiness || '-'} | Dor: ${d.pain || '-'}`, d.bodyweight ? `Peso corporal: ${d.bodyweight}` : '', (d.watchDuration || d.watchCalories || d.watchAvgHr || d.watchDistance) ? `Apple Watch: duração ${d.watchDuration || '-'} | kcal ativas ${d.watchCalories || '-'} | FC média ${d.watchAvgHr || '-'} | distância ${d.watchDistance || '-'}` : '', d.exercises?.length ? 'Exercícios:' : '', ...(d.exercises||[]).map(e=>`- ${e.exercise}: ${e.variant ? 'variação ' + e.variant + ' | ' : ''}${e.weight ? e.weight + ' kg | ' : ''}${e.duration ? 'tempo ' + e.duration + ' | ' : ''}${e.actual ? 'real ' + e.actual + ' | ' : ''}RPE ${e.rpe || '-'} | ${e.obs || ''}`), d.notes ? `Notas: ${d.notes}` : ''].filter(Boolean).join('\n');
 }
 async function copySummary(){
   const lines = buildSummary();

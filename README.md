@@ -4,15 +4,39 @@ HTML estático para acompanhar o plano de treino de 8 semanas.
 
 ## Feedback loop
 
-Os registros ficam no `localStorage` do navegador do celular. Para o Charlie/PA ajustar o treino:
+Os registros ficam no `localStorage` do navegador do celular e, quando o Supabase estiver configurado, também são enviados para a tabela `training_sessions`.
 
 1. Abrir o treino do dia
 2. Preencher execução real, RPE, sono, energia, dor e notas
 3. Clicar em **Salvar treino**
-4. Clicar em **Copiar** ou **Enviar/Compartilhar**
-5. Colar/enviar o resumo para o Charlie
+4. Se o Supabase estiver ativo, o app salva no banco automaticamente
+5. Se não estiver ativo, clicar em **Copiar** ou **Enviar/Compartilhar**
 
-Sem backend, não há sincronização automática dos dados.
+Sem Supabase configurado, não há sincronização automática dos dados.
+
+## Supabase
+
+Arquivos incluídos:
+
+- `supabase/migrations/001_training_sessions.sql`: cria a tabela `training_sessions`
+- `supabase/functions/ingest-training-session/index.ts`: Edge Function que valida um token privado e grava/upserta o treino
+
+Deploy esperado:
+
+```bash
+supabase link --project-ref <project-ref>
+supabase db push
+supabase secrets set TRAINING_INGEST_TOKEN=<private-token> TRAINING_OWNER_KEY=brian
+supabase functions deploy ingest-training-session --no-verify-jwt
+```
+
+Depois de publicar, abrir uma vez no celular:
+
+```text
+https://brianbittencourtai-ai.github.io/training-tracker/?supabase_ingest_url=https://<project-ref>.functions.supabase.co/ingest-training-session&training_token=<private-token>
+```
+
+O app salva essa configuração no `localStorage` e remove os parâmetros da URL.
 
 ## Automação via ntfy
 

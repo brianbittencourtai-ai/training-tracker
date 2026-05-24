@@ -172,8 +172,8 @@
 <body>
 <header>
   <h1>Treino Brian</h1>
-  <div class="subtitle">Biblioteca de treinos — força, beach, pilates e corrida/bike. Salva no navegador via localStorage.</div>
-  <div class="subtitle" style="margin-top:6px;color:#72e0a8">Feedback loop: salve o treino e use Enviar Charlie. Se automação não estiver configurada, o app usa compartilhamento/cópia.</div>
+  <div class="subtitle">Biblioteca de treinos — força, beach, pilates e corrida/bike. Salva localmente e sincroniza com Supabase quando configurado.</div>
+  <div class="subtitle" style="margin-top:6px;color:#72e0a8">Feedback loop: salve o treino. O app tenta enviar ao banco; se não estiver configurado, usa compartilhamento/cópia.</div>
 </header>
 <main>
   <section class="card">
@@ -186,7 +186,7 @@
       <div class="row desktop-only">
         <button class="secondary" onclick="exportData()">Exportar JSON</button>
         <button class="secondary" onclick="copySummary()">Copiar resumo</button>
-        <button class="secondary" onclick="sendToCharlie()">Enviar Charlie</button>
+        <button class="secondary" onclick="sendToCharlie()">Enviar banco</button>
       </div>
     </div>
   </section>
@@ -194,10 +194,10 @@
   <section class="card" id="automationCard">
     <div class="row" style="justify-content:space-between">
       <div>
-        <strong>Automação Charlie</strong>
+        <strong>Banco de treinos</strong>
         <div id="automationStatus" class="small">Checando configuração...</div>
       </div>
-      <button class="secondary" onclick="clearAutomationConfig()" style="max-width:180px">Resetar envio</button>
+      <button class="secondary" onclick="clearAutomationConfig()" style="max-width:180px">Resetar banco</button>
     </div>
   </section>
 
@@ -300,27 +300,52 @@ let selectedDay = "Musculação A";
 const $ = id => document.getElementById(id);
 function todayISO(){ return new Date().toISOString().slice(0,10); }
 const AUTOMATION_KEY = 'trainingAutomationNtfyTopic';
+const SUPABASE_URL_KEY = 'trainingSupabaseIngestUrl';
+const SUPABASE_TOKEN_KEY = 'trainingSupabaseIngestToken';
 function getAutomationTopic(){ return localStorage.getItem(AUTOMATION_KEY) || ''; }
+function getSupabaseConfig(){
+  return {
+    ingestUrl: localStorage.getItem(SUPABASE_URL_KEY) || '',
+    token: localStorage.getItem(SUPABASE_TOKEN_KEY) || ''
+  };
+}
 function initAutomationConfig(){
   const params = new URLSearchParams(location.search);
   const topic = params.get('ntfy') || params.get('topic');
   if(topic && /^[a-zA-Z0-9_-]{16,96}$/.test(topic)){
     localStorage.setItem(AUTOMATION_KEY, topic);
-    history.replaceState({}, document.title, location.pathname);
   }
+  const ingestUrl = params.get('supabase_ingest_url') || params.get('ingest_url');
+  const ingestToken = params.get('training_token') || params.get('ingest_token');
+  if(ingestUrl && /^https:\/\/[a-zA-Z0-9.-]+\/functions\/v1\/[a-zA-Z0-9_-]+$/.test(ingestUrl)){
+    localStorage.setItem(SUPABASE_URL_KEY, ingestUrl);
+  }
+  if(ingestToken && /^[a-zA-Z0-9_.:-]{20,160}$/.test(ingestToken)){
+    localStorage.setItem(SUPABASE_TOKEN_KEY, ingestToken);
+  }
+  if(topic || ingestUrl || ingestToken) history.replaceState({}, document.title, location.pathname);
   renderAutomationStatus();
 }
 function renderAutomationStatus(){
   const el = $('automationStatus');
   if(!el) return;
+  const supabase = getSupabaseConfig();
   const topic = getAutomationTopic();
-  el.innerHTML = topic ? '<span class="ok">Ativa.</span> Treinos enviados pelo botão “Enviar Charlie” chegam para análise automática.' : '<span class="warn">Manual.</span> Abra o link privado de configuração uma vez para ativar envio automático.';
+  if(supabase.ingestUrl && supabase.token){
+    el.innerHTML = '<span class="ok">Supabase ativo.</span> Ao salvar, o treino fica no navegador e no banco central.';
+  } else if(topic) {
+    el.innerHTML = '<span class="ok">Ntfy ativo.</span> Treinos enviados pelo botão “Enviar” chegam para análise automática. Supabase ainda não configurado.';
+  } else {
+    el.innerHTML = '<span class="warn">Manual.</span> Configure Supabase uma vez para salvar histórico centralizado.';
+  }
 }
 function clearAutomationConfig(){
-  if(confirm('Remover configuração de envio automático deste navegador?')){
+  if(confirm('Remover configuração de banco/envio automático deste navegador?')){
     localStorage.removeItem(AUTOMATION_KEY);
+    localStorage.removeItem(SUPABASE_URL_KEY);
+    localStorage.removeItem(SUPABASE_TOKEN_KEY);
     renderAutomationStatus();
-    showToast('Automação removida deste aparelho.');
+    showToast('Configuração removida deste aparelho.');
   }
 }
 function dayFromISO(iso){
@@ -544,9 +569,10 @@ function preloadPreviousExercises(){
   }
   return hasAny;
 }
-function saveSession(){
+async function saveSession(){
   const data = { date:$('date').value, week:$('week').value, day:dayFromISO($('date').value), activityTemplate:selectedDay, title:plan[selectedDay].title, type:plan[selectedDay].type, cardio:cardioFor(selectedDay), cardioEntries:collectCardioEntries(), cardioDone:$('cardioDone')?.value || '', sleep:$('sleep').value, readiness:$('readiness').value, pain:$('pain').value, bodyweight:$('bodyweight').value, watchDuration:$('watchDuration').value, watchCalories:$('watchCalories').value, watchAvgHr:$('watchAvgHr').value, watchDistance:$('watchDistance').value, notes:$('notes').value, exercises:collectExercises(), savedAt:new Date().toISOString() };
-  localStorage.setItem(key(), JSON.stringify(data)); renderHistory(); showToast('Treino salvo.');
+  localStorage.setItem(key(), JSON.stringify(data)); renderHistory(); showToast('Treino salvo localmente.');
+  await syncSessionToSupabase(data, { quiet: true });
 }
 function loadToday(show=true){
   const raw = localStorage.getItem(key());
@@ -612,9 +638,12 @@ async function shareSummary(){
 async function sendToCharlie(){
   const lines = buildSummary();
   if(!lines){ showToast('Salve o treino primeiro.'); return; }
+  const raw = JSON.parse(localStorage.getItem(key()) || '{}');
+  const supabaseOk = await syncSessionToSupabase(raw, { quiet: false });
+  if(supabaseOk) return;
   const topic = getAutomationTopic();
   if(!topic){
-    showToast('Automação não configurada. Abrindo compartilhamento.');
+    showToast('Banco não configurado. Abrindo compartilhamento.');
     await shareSummary();
     return;
   }
@@ -644,6 +673,37 @@ async function sendToCharlie(){
     console.error(e);
     await navigator.clipboard.writeText(lines);
     showToast('Falhou o envio. Copiei o resumo.');
+  }
+}
+async function syncSessionToSupabase(session, options={}){
+  const { ingestUrl, token } = getSupabaseConfig();
+  if(!ingestUrl || !token) return false;
+  try {
+    const res = await fetch(ingestUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+        'x-training-token': token
+      },
+      body: JSON.stringify({
+        kind: 'training_session',
+        source: 'training-tracker',
+        submittedAt: new Date().toISOString(),
+        date: session.date,
+        day: session.day,
+        week: session.week,
+        summary: buildSummary(),
+        raw: session
+      })
+    });
+    if(!res.ok) throw new Error(`HTTP ${res.status}`);
+    showToast('Treino salvo no Supabase.');
+    return true;
+  } catch(e) {
+    console.error(e);
+    if(!options.quiet) showToast('Falhou Supabase. Vou abrir compartilhamento.');
+    return false;
   }
 }
 $('week').addEventListener('change', renderSession);

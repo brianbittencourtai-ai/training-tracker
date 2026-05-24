@@ -172,7 +172,7 @@
 <body>
 <header>
   <h1>Treino Brian</h1>
-  <div class="subtitle">Plano 8 semanas — força, beach, pilates e corrida/bike. Salva no navegador via localStorage.</div>
+  <div class="subtitle">Biblioteca de treinos — força, beach, pilates e corrida/bike. Salva no navegador via localStorage.</div>
   <div class="subtitle" style="margin-top:6px;color:#72e0a8">Feedback loop: salve o treino e use Enviar Charlie. Se automação não estiver configurada, o app usa compartilhamento/cópia.</div>
 </header>
 <main>
@@ -181,7 +181,7 @@
       <div>
         <div class="pill">Semana <input id="week" type="number" min="1" max="8" value="1" style="width:72px; margin-left:6px"></div>
         <div class="pill">Data <input id="date" type="date" style="width:150px; margin-left:6px"></div>
-        <div class="pill">Hoje fiz/vou fazer <select id="activitySelect" style="width:230px; margin-left:6px"></select></div>
+        <div class="pill">Treino de hoje <select id="activitySelect" style="width:230px; margin-left:6px"></select></div>
       </div>
       <div class="row desktop-only">
         <button class="secondary" onclick="exportData()">Exportar JSON</button>
@@ -201,12 +201,12 @@
     </div>
   </section>
 
-  <section class="grid" id="days"></section>
+  <section class="grid" id="templates"></section>
 
   <section class="card">
     <div class="row" style="justify-content:space-between">
       <div>
-        <h2 id="sessionTitle" style="margin:0">Selecione um dia</h2>
+        <h2 id="sessionTitle" style="margin:0">Selecione um treino</h2>
         <div id="sessionMeta" class="small"></div>
       </div>
       <div id="sessionType" class="pill"></div>
@@ -266,29 +266,37 @@
 </div>
 <script>
 const plan = {
-  "Segunda": { type:"Beach", title:"Beach tennis", meta:"Esporte / coordenação / explosão", items:[] },
-  "Terça": { type:"Força + cardio", title:"Musculação A + cardio leve", meta:"RPE força ~7; cardio RPE 5-6", items:[
-    ["Goblet squat ou leg press", "3x8-12"], ["Supino halteres ou chest press", "3x8-12"], ["Remada", "3x10-12"], ["Terra romeno", "3x8-10"], ["Desenvolvimento ombro", "2x8-10"], ["Prancha", "3x30-45s"], ["Farmer carry", "3x30-45s"]
+  "Beach tennis": { type:"Beach", title:"Beach tennis", meta:"Esporte / coordenação / explosão", items:[] },
+  "Musculação A": { type:"Força + cardio", title:"Musculação A", meta:"RPE força ~7; cardio leve opcional RPE 5-6", cardioProfile:"a", items:[
+    ["Leg Press Coxa", "3x8-12"], ["Supino halteres ou chest press", "3x8-12"], ["Remada", "3x10-12"], ["Terra romeno", "3x8-10"], ["Desenvolvimento ombro", "2x8-10"], ["Prancha", "3x30-45s"], ["Farmer carry", "3x30-45s"]
   ]},
-  "Quarta": { type:"Beach", title:"Beach tennis", meta:"Esporte / coordenação / explosão", items:[] },
-  "Quinta": { type:"Força + cardio", title:"Musculação B + cardio leve", meta:"RPE força ~7; cardio RPE 5-6", items:[
-    ["Leg press ou avanço", "3x10-12"], ["Puxada", "3x8-12"], ["Supino inclinado", "3x8-12"], ["Hip thrust", "3x10-12"], ["Elevação lateral", "2x12-15"], ["Pallof press ou prancha lateral", "3x10-12/lado ou 20-30s"], ["Face pull ou crucifixo inverso", "2x12-15"]
+  "Musculação B": { type:"Força + cardio", title:"Musculação B", meta:"RPE força ~7; cardio leve opcional RPE 5-6", cardioProfile:"b", items:[
+    ["Leg Press Panturrilha", "3x10-12"], ["Puxada", "3x8-12"], ["Supino inclinado", "3x8-12"], ["Hip thrust", "3x10-12"], ["Elevação lateral", "2x12-15"], ["Pallof press ou prancha lateral", "3x10-12/lado ou 20-30s"], ["Face pull ou crucifixo inverso", "2x12-15"]
   ]},
-  "Sexta": { type:"Pilates", title:"Pilates", meta:"Mobilidade, core, postura, recuperação ativa", items:[] },
-  "Sábado": { type:"Off", title:"Descanso / caminhada leve opcional", meta:"Dia livre. Só leve se recuperação estiver boa.", items:[] },
-  "Domingo": { type:"Longão", title:"Corrida + bike", meta:"RPE 6-7, forte controlado", items:[] }
+  "Pilates": { type:"Pilates", title:"Pilates", meta:"Mobilidade, core, postura, recuperação ativa", items:[] },
+  "Longão corrida + bike": { type:"Longão", title:"Corrida + bike", meta:"RPE 6-7, forte controlado", cardioProfile:"long", items:[] },
+  "Descanso": { type:"Off", title:"Descanso / caminhada leve opcional", meta:"Dia livre. Só leve se recuperação estiver boa.", items:[] }
 };
 const cardio = {
-  1:{tue:"1 km corrida + 2 km bike", thu:"1 km corrida + 2 km bike", sun:"3 km corrida + 6 km bike"},
-  2:{tue:"1,5 km corrida + 2-3 km bike", thu:"1,5 km corrida + 2-3 km bike", sun:"3,5 km corrida + 6 km bike"},
-  3:{tue:"2 km corrida + 3 km bike", thu:"2 km corrida + 3 km bike", sun:"4 km corrida + 6-7 km bike"},
-  4:{tue:"2 km corrida + 3-4 km bike leve", thu:"2 km corrida + 3-4 km bike leve", sun:"4 km corrida + 6 km bike leve"},
-  5:{tue:"2,5 km corrida + 4 km bike", thu:"2,5 km corrida + 4 km bike", sun:"5 km corrida + 7 km bike"},
-  6:{tue:"2,5-3 km corrida + 4-5 km bike", thu:"2,5 km corrida + 4 km bike", sun:"5-5,5 km corrida + 8 km bike"},
-  7:{tue:"3 km corrida + 5 km bike", thu:"2 km corrida + 4 km bike", sun:"6 km corrida + 8-10 km bike"},
-  8:{tue:"Manter ou deload leve", thu:"Manter ou deload leve", sun:"Deload parcial ou repetir semana 7 controlado"}
+  1:{a:"1 km corrida + 2 km bike", b:"1 km corrida + 2 km bike", long:"3 km corrida + 6 km bike"},
+  2:{a:"1,5 km corrida + 2-3 km bike", b:"1,5 km corrida + 2-3 km bike", long:"3,5 km corrida + 6 km bike"},
+  3:{a:"2 km corrida + 3 km bike", b:"2 km corrida + 3 km bike", long:"4 km corrida + 6-7 km bike"},
+  4:{a:"2 km corrida + 3-4 km bike leve", b:"2 km corrida + 3-4 km bike leve", long:"4 km corrida + 6 km bike leve"},
+  5:{a:"2,5 km corrida + 4 km bike", b:"2,5 km corrida + 4 km bike", long:"5 km corrida + 7 km bike"},
+  6:{a:"2,5-3 km corrida + 4-5 km bike", b:"2,5 km corrida + 4 km bike", long:"5-5,5 km corrida + 8 km bike"},
+  7:{a:"3 km corrida + 5 km bike", b:"2 km corrida + 4 km bike", long:"6 km corrida + 8-10 km bike"},
+  8:{a:"Manter ou deload leve", b:"Manter ou deload leve", long:"Deload parcial ou repetir semana 7 controlado"}
 };
-let selectedDay = "Terça";
+const legacyTemplates = {
+  "Segunda": "Beach tennis",
+  "Terça": "Musculação A",
+  "Quarta": "Beach tennis",
+  "Quinta": "Musculação B",
+  "Sexta": "Pilates",
+  "Sábado": "Descanso",
+  "Domingo": "Longão corrida + bike"
+};
+let selectedDay = "Musculação A";
 const $ = id => document.getElementById(id);
 function todayISO(){ return new Date().toISOString().slice(0,10); }
 const AUTOMATION_KEY = 'trainingAutomationNtfyTopic';
@@ -320,13 +328,20 @@ function dayFromISO(iso){
   const dt = new Date(y, m - 1, d);
   return ["Domingo","Segunda","Terça","Quarta","Quinta","Sexta","Sábado"][dt.getDay()];
 }
+function normalizeTemplateKey(template){
+  return plan[template] ? template : legacyTemplates[template] || selectedDay;
+}
 function setSelectedDay(day, shouldLoad=true){
-  selectedDay = day;
+  selectedDay = normalizeTemplateKey(day);
   const sel = $('activitySelect');
-  if(sel) sel.value = day;
-  renderDays();
+  if(sel) sel.value = selectedDay;
+  renderTemplates();
   renderSession();
-  if(shouldLoad) loadToday(false);
+  if(shouldLoad) {
+    clearTrainingInputs();
+    preloadPreviousExercises();
+    preloadPreviousCardio();
+  }
 }
 function renderActivitySelect(){
   const sel = $('activitySelect');
@@ -336,24 +351,20 @@ function renderActivitySelect(){
   sel.onchange = () => setSelectedDay(sel.value);
 }
 function key(){ return `training:${$('date').value}`; }
-function renderDays(){
-  const wrap = $('days'); wrap.innerHTML = '';
-  const calendarDay = dayFromISO($('date').value);
+function renderTemplates(){
+  const wrap = $('templates'); wrap.innerHTML = '';
   Object.entries(plan).forEach(([day, p]) => {
     const el = document.createElement('div');
-    el.className = 'day' + (day === calendarDay ? ' active' : '');
+    el.className = 'day' + (day === selectedDay ? ' active' : '');
     el.onclick = () => setSelectedDay(day);
-    const override = day === calendarDay && selectedDay !== calendarDay ? `<div class="small ok" style="margin-top:6px">Hoje: ${plan[selectedDay].title}</div>` : '';
-    el.innerHTML = `<strong>${day}</strong><span>${p.title}</span>${override}`;
+    el.innerHTML = `<strong>${p.title}</strong><span>${p.type}</span>`;
     wrap.appendChild(el);
   });
 }
 function cardioFor(day){
   const w = Math.max(1, Math.min(8, Number($('week').value || 1)));
-  if(day === 'Terça') return cardio[w].tue;
-  if(day === 'Quinta') return cardio[w].thu;
-  if(day === 'Domingo') return cardio[w].sun;
-  return null;
+  const profile = plan[normalizeTemplateKey(day)]?.cardioProfile;
+  return profile ? cardio[w][profile] : null;
 }
 const cardioTypes = ['Corrida', 'Bike', 'Elíptico', 'Esteira inclinada', 'Caminhada', 'Outro', 'Não fiz cardio'];
 function renderCardioTypeSelect(idx){
@@ -372,7 +383,7 @@ const exerciseInputs = {
 };
 const exerciseInputModes = {
   // Treino A
-  'Goblet squat ou leg press': 'strength',
+  'Leg Press Coxa': 'strength',
   'Supino halteres ou chest press': 'strength',
   'Remada': 'strength',
   'Terra romeno': 'strength',
@@ -381,7 +392,7 @@ const exerciseInputModes = {
   'Farmer carry': 'loadedCarry',
 
   // Treino B
-  'Leg press ou avanço': 'strength',
+  'Leg Press Panturrilha': 'calf',
   'Puxada': 'strength',
   'Supino inclinado': 'strength',
   'Hip thrust': 'strength',
@@ -414,9 +425,8 @@ function renderInputHint(name){
 }
 function renderSession(){
   const p = plan[selectedDay];
-  const calendarDay = dayFromISO($('date').value);
-  $('sessionTitle').textContent = selectedDay === calendarDay ? `${calendarDay} — ${p.title}` : `${calendarDay} — ${p.title}`;
-  $('sessionMeta').textContent = selectedDay === calendarDay ? p.meta : `${p.meta} · atividade alterada manualmente; dia calendário continua ${calendarDay}`;
+  $('sessionTitle').textContent = p.title;
+  $('sessionMeta').textContent = p.meta;
   $('sessionType').textContent = p.type;
   const c = cardioFor(selectedDay);
   let html = '';
@@ -515,6 +525,11 @@ function fillExercises(exs=[]){
     Object.entries(fields).forEach(([f,v]) => { const el = document.querySelector(`[data-field="${f}"][data-idx="${idx}"]`); if(el) el.value = v || ''; });
   });
 }
+function clearTrainingInputs(){
+  fillCardio([]);
+  ['cardioDone'].forEach(id => { const el = $(id); if(el) el.value = ''; });
+  fillExercises([]);
+}
 function preloadPreviousExercises(){
   if(!plan[selectedDay].items.length) return false;
   const previous = findPreviousExercises();
@@ -536,9 +551,7 @@ function saveSession(){
 function loadToday(show=true){
   const raw = localStorage.getItem(key());
   ['sleep','readiness','pain','bodyweight','watchDuration','watchCalories','watchAvgHr','watchDistance','notes'].forEach(id => $(id).value = '');
-  fillCardio([]);
-  ['cardioDone'].forEach(id => { const el = $(id); if(el) el.value = ''; });
-  fillExercises([]);
+  clearTrainingInputs();
   if(!raw){
     const loadedPrevious = preloadPreviousExercises();
     const loadedPreviousCardio = preloadPreviousCardio();
@@ -547,10 +560,11 @@ function loadToday(show=true){
   }
   const d = JSON.parse(raw);
   $('week').value = d.week || $('week').value;
-  if(d.activityTemplate && plan[d.activityTemplate] && d.activityTemplate !== selectedDay){
-    selectedDay = d.activityTemplate;
+  const savedTemplate = d.activityTemplate ? normalizeTemplateKey(d.activityTemplate) : null;
+  if(savedTemplate && savedTemplate !== selectedDay){
+    selectedDay = savedTemplate;
     renderActivitySelect();
-    renderDays();
+    renderTemplates();
     renderSession();
   }
   ['sleep','readiness','pain','bodyweight','watchDuration','watchCalories','watchAvgHr','watchDistance','notes'].forEach(id => $(id).value = d[id] || '');
@@ -634,14 +648,12 @@ async function sendToCharlie(){
 }
 $('week').addEventListener('change', renderSession);
 $('date').addEventListener('change', () => {
-  setSelectedDay(dayFromISO($('date').value), false);
   loadToday(false);
 });
 $('date').value = todayISO();
-selectedDay = dayFromISO($('date').value);
 renderActivitySelect();
 initAutomationConfig();
-renderDays(); renderSession(); renderHistory(); loadToday(false);
+renderTemplates(); renderSession(); renderHistory(); loadToday(false);
 </script>
 </body>
 </html>

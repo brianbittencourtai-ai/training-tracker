@@ -33,7 +33,7 @@ supabase functions deploy ingest-training-session --no-verify-jwt
 Depois de publicar, abrir uma vez no celular:
 
 ```text
-https://brianbittencourtai-ai.github.io/training-tracker/?supabase_ingest_url=https://<project-ref>.functions.supabase.co/ingest-training-session&training_token=<private-token>
+https://brianbittencourtai-ai.github.io/training-tracker/?supabase_ingest_url=https://<project-ref>.supabase.co/functions/v1/ingest-training-session&training_token=<private-token>
 ```
 
 O app salva essa configuração no `localStorage` e remove os parâmetros da URL.

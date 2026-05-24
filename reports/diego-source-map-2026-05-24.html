@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Diego Almeida Source Map — 2026-05-24</title>
+<style>
+* { box-sizing: border-box; }
+body { margin: 0; font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: #0b1020; color: #eef4ff; }
+.wrap { max-width: 1120px; margin: 0 auto; padding: 32px 18px 60px; }
+h1 { margin: 0 0 8px; font-size: 34px; letter-spacing: 0; }
+h2 { margin: 30px 0 12px; font-size: 22px; }
+h3 { margin: 22px 0 10px; font-size: 17px; }
+p, li { color: #d8e7fb; line-height: 1.55; }
+.sub { color: #93a4bd; margin: 0 0 22px; max-width: 820px; }
+.callout { border: 1px solid #2b6f92; background: linear-gradient(135deg, rgba(56,189,248,.14), rgba(167,139,250,.10)); border-radius: 14px; padding: 16px 18px; margin: 18px 0; }
+.grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin: 20px 0; }
+.kpi { background: #121a32; border: 1px solid #25314f; border-radius: 12px; padding: 14px; }
+.num { font-weight: 800; font-size: 26px; }
+.label { color: #93a4bd; font-size: 13px; margin-top: 4px; }
+table { width: 100%; border-collapse: collapse; margin: 12px 0 22px; background: #121a32; border: 1px solid #25314f; border-radius: 12px; overflow: hidden; }
+th, td { border-bottom: 1px solid #25314f; padding: 10px 11px; text-align: left; vertical-align: top; font-size: 13px; }
+th { color: #cfe3ff; text-transform: uppercase; font-size: 11px; letter-spacing: .05em; background: rgba(255,255,255,.03); }
+a { color: #7dd3fc; text-decoration: none; }
+a:hover { text-decoration: underline; }
+.pill { display: inline-block; border: 1px solid rgba(125,211,252,.32); background: rgba(125,211,252,.12); color: #c6f1ff; padding: 4px 8px; border-radius: 999px; font-size: 12px; margin: 0 6px 8px 0; }
+.sources { display: flex; flex-wrap: wrap; gap: 8px; }
+.sources a { border: 1px solid #25314f; background: #121a32; border-radius: 999px; padding: 8px 10px; color: #dbeafe; }
+.footer { color: #93a4bd; font-size: 12px; margin-top: 30px; }
+@media (max-width: 800px) { .grid { grid-template-columns: 1fr 1fr; } table { font-size: 12px; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Diego Almeida Source Map</h1>
+  <p class="sub">Amostra de 40 posts recentes do @diegoalmeida.ia. Objetivo: descobrir a cadeia de fontes por trás do conteúdo e transformar isso em radar upstream para Brian.</p>
+
+  <div class="grid">
+    <div class="kpi"><div class="num">40</div><div class="label">posts analisados</div></div>
+    <div class="kpi"><div class="num">10</div><div class="label">posts nos últimos 3 dias</div></div>
+    <div class="kpi"><div class="num">9</div><div class="label">fontes citadas nos captions</div></div>
+    <div class="kpi"><div class="num">88%</div><div class="label">confiança geral</div></div>
+  </div>
+
+  <div class="callout">
+    <b>Conclusão:</b> Diego parece operar com curadoria rápida + localização PT-BR. Ele mistura fontes oficiais, X/Reddit/newsletters e criadores gringos de AI video. Para Brian, o jogo é pegar o sinal antes dele chegar no BR e adaptar para AI aplicada a Growth/GTM.
+  </div>
+
+  <h2>Fontes explícitas nos captions</h2>
+  <table>
+    <thead><tr><th>Fonte</th><th>Tipo</th><th>O que fornece</th><th>Prioridade</th></tr></thead>
+    <tbody>
+      <tr><td>@advkiki</td><td>AI pop culture/video</td><td>Inserções em filmes e séries: Round 6, Avengers</td><td>Alta</td></tr>
+      <tr><td>@knightama_ig</td><td>AI pop culture/video</td><td>Trailers alternativos estilo anime/cinema</td><td>Alta</td></tr>
+      <tr><td>@ai_am_furufuru</td><td>AI movie remix</td><td>Pessoa entrando em filmes, cenas hiper-realistas</td><td>Média</td></tr>
+      <tr><td>@DrClownPhD</td><td>AI remix/cinema</td><td>Recriação de cenas e atores</td><td>Média</td></tr>
+      <tr><td>@azzalto_ai</td><td>AI horror/action visual</td><td>Mashups tipo Jigsaw/Pennywise/Jason no UFC</td><td>Média</td></tr>
+      <tr><td>@mrabujoe</td><td>AI short film</td><td>Curta sci-fi feito com IA</td><td>Média</td></tr>
+      <tr><td>@figure_robot</td><td>Robotics official</td><td>Demos de humanoides Figure</td><td>Alta</td></tr>
+      <tr><td>@googlebrasil</td><td>Big tech official BR</td><td>Anúncios Google localizados</td><td>Média</td></tr>
+      <tr><td>@maestrojoaocarlosmartins</td><td>Local BR</td><td>Caso robô/orquestra em SP</td><td>Baixa para Brian</td></tr>
+    </tbody>
+  </table>
+
+  <h2>Matching por tema</h2>
+  <table>
+    <thead><tr><th>Post do Diego</th><th>Data</th><th>Fonte provável</th><th>Delay</th><th>Conf.</th></tr></thead>
+    <tbody>
+      <tr><td>Figure AI 10h humano vs robô</td><td>18/05</td><td>Brett Adcock/X + BeInCrypto/OfficeChai</td><td>0-1d</td><td>90%</td></tr>
+      <tr><td>Figure AI 200h separando pacotes</td><td>22/05</td><td>Figure/Brett Adcock + AI Weekly</td><td>1-2d</td><td>80%</td></tr>
+      <tr><td>Google AI Studio cria apps Android</td><td>22/05</td><td>Google Blog + TechCrunch/AndroidCentral</td><td>3d</td><td>95%</td></tr>
+      <tr><td>Google AI Mode/Search agents</td><td>20/05</td><td>Google Blog I/O 2026</td><td>1d</td><td>95%</td></tr>
+      <tr><td>CapCut integrado ao Gemini</td><td>21/05</td><td>Android Authority/Business Standard/Wired</td><td>0-2d</td><td>90%</td></tr>
+      <tr><td>Anthropic Fellows US$3.850/semana</td><td>19/05</td><td>Anthropic official/jobs/alignment</td><td>recirculado</td><td>95%</td></tr>
+      <tr><td>RuView Wi-Fi "enxerga" ambiente</td><td>20/05</td><td>GitHub + Reddit/WebAfterAI</td><td>0-5d</td><td>90%</td></tr>
+      <tr><td>Khaby Lame AI digital twin</td><td>18/05</td><td>Le Monde/Financial Express/TheWrap</td><td>1-3 meses</td><td>85%</td></tr>
+      <tr><td>Claude/AI coding budget Microsoft/Uber/GitHub</td><td>23/05</td><td>Reddit/X/newsletter</td><td>1-3 semanas</td><td>60%</td></tr>
+      <tr><td>ChatGPT em extrato bancário</td><td>16/05</td><td>OpenAI/Slashdot/Cyber Ivy</td><td>0-1d</td><td>85%</td></tr>
+    </tbody>
+  </table>
+
+  <h2>Source Map recomendado para Brian</h2>
+  <p><span class="pill">Google Blog/I/O</span><span class="pill">Figure AI/Brett Adcock</span><span class="pill">Anthropic official</span><span class="pill">OpenAI releases</span><span class="pill">GitHub Trending</span><span class="pill">Hacker News</span><span class="pill">Reddit AI/tech</span><span class="pill">AI Weekly</span><span class="pill">The Rundown AI</span><span class="pill">Ben's Bites</span><span class="pill">TLDR AI</span><span class="pill">Superhuman AI</span><span class="pill">AI PlanetX</span><span class="pill">Android Authority</span><span class="pill">TechCrunch</span></p>
+
+  <h2>O que copiar do método</h2>
+  <ul>
+    <li>Velocidade de empacotamento.</li>
+    <li>Hook com cena concreta, não headline abstrata.</li>
+    <li>Tradução de sinal internacional para dor local.</li>
+    <li>Monitoramento upstream, não downstream.</li>
+  </ul>
+
+  <h2>O que não copiar</h2>
+  <ul>
+    <li>Pop culture AI genérico como território principal.</li>
+    <li>CTA "comente X" sem lead magnet claro.</li>
+    <li>Notícia sem tese própria.</li>
+    <li>Conteúdo que depende só de "olha que absurdo".</li>
+  </ul>
+
+  <div class="callout">
+    <b>Tese para Brian:</b><br>
+    Diego pergunta: "Isso vira post viral para brasileiro comum interessado em IA?"<br>
+    Brian deve perguntar: "Isso muda alguma decisão de Growth, GTM, marketing, vendas ou operação para um executivo B2B?"
+  </div>
+
+  <h2>Fontes usadas</h2>
+  <div class="sources">
+    <a href="https://blog.google/innovation-and-ai/technology/developers-tools/google-ai-studio-io-2026/" target="_blank">Google AI Studio</a>
+    <a href="https://blog.google/products-and-platforms/products/search/search-io-2026/" target="_blank">Google Search I/O</a>
+    <a href="https://www.androidauthority.com/capcut-gemini-integration-video-editing-3669725/" target="_blank">Android Authority</a>
+    <a href="https://www.business-standard.com/technology/tech-news/gemini-app-edit-images-videos-capcut-voice-prompts-126052200661_1.html" target="_blank">Business Standard</a>
+    <a href="https://beincrypto.com/figure-ai-f03-robot-human-intern-contest/" target="_blank">BeInCrypto Figure</a>
+    <a href="https://aiweekly.co/alerts/figure-ai-helix-02-runs-200-hours-sorts-149k-packages" target="_blank">AI Weekly Figure</a>
+    <a href="https://alignment.anthropic.com/2025/anthropic-fellows-program-2026/" target="_blank">Anthropic Fellows</a>
+    <a href="https://github.com/ruvnet/RuView" target="_blank">RuView GitHub</a>
+    <a href="https://www.lemonde.fr/en/international/article/2026/02/01/an-ai-clone-and-a-publicly-traded-company-the-irresistible-rise-of-tiktoker-khaby-lame_6750019_4.html" target="_blank">Le Monde Khaby</a>
+    <a href="https://cyber-ivy.com/en/articles/chatgpt-personal-finance-bank-accounts-2026" target="_blank">ChatGPT Finance</a>
+  </div>
+
+  <p class="footer">Raw: memory/research/instagram-radar/raw/diego-source-map-2026-05-24-diego-only.raw.json · Report: memory/research/diego-source-map-2026-05-24.md</p>
+</div>
+</body>
+</html>
